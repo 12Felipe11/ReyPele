@@ -1,0 +1,22 @@
+# Compilados de IntelliJ
+out/
+*.class
+
+# Maven
+target/
+
+# Base de datos SQLite (se genera al ejecutar, no va en el repo)
+*.db
+*.db-shm
+*.db-wal
+
+# Archivos de configuracion local de IntelliJ
+.idea/
+*.iml
+
+# JARs descargados manualmente (con Maven ya no hacen falta)
+*.jar
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
