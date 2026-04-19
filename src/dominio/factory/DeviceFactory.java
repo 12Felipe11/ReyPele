@@ -1,6 +1,7 @@
 package dominio.factory;
 
 import dominio.sensor.EntryCounterSensor;
+import dominio.sensor.PresenceSensor;
 import dominio.actuator.AlarmZoneActuator;
 import dominio.actuator.LightingZoneActuator;
 
@@ -12,6 +13,9 @@ public abstract class DeviceFactory {
 
     public abstract EntryCounterSensor createEntryCounterSensor(
             String id, String location, int maxCapacity);
+
+    public abstract PresenceSensor createPresenceSensor(
+            String id, String location);
 
     public abstract AlarmZoneActuator createAlarmZoneActuator(
             String id, String zone);

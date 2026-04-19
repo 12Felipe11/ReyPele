@@ -24,6 +24,14 @@ public abstract class Actuator {
 
     public abstract void deactivate();
 
+    /** Comportamiento al entrar en modo AUTO. Cada subclase decide su reaccion. */
+    public void applyAutoMode() {
+        // Por defecto: sin accion (las luces mantienen su estado)
+    }
+
+    /** Descripcion legible del estado actual para el comando READ. */
+    public abstract String getStatusLine();
+
     public String getId() {
         return id;
     }

@@ -131,7 +131,8 @@ public class ArduinoAdapter implements IHardwareComm {
         switch (sensorId) {
             case SENSOR_ENTRY:    return lastEntryCount;
             case SENSOR_DISTANCE: return (int) lastDistance;
-            case SENSOR_PRESENCE: return lastPresence ? 1 : 0;
+            case SENSOR_PRESENCE:
+            case "PRESENCE-01":   return lastPresence ? 1 : 0;
             case SENSOR_LIGHT:    return lastLightPercent;
             default:              return 0;
         }

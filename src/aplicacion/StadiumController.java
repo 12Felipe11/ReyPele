@@ -28,8 +28,6 @@ public class StadiumController implements Observer {
     }
 
     private void handleCapacityExceeded(int count) {
-        System.out.println("  [CONTROLLER] Capacidad excedida (" + count
-                + "). Activando modo EMERGENCIA.");
         facade.changeMode(new EmergencyModeStrategy());
     }
 }

@@ -23,4 +23,14 @@ public class AlarmZoneActuator extends Actuator {
         this.active = false;
         hardwareComm.sendCommand(id, "ALARM_OFF");
     }
+
+    @Override
+    public void applyAutoMode() {
+        deactivate();
+    }
+
+    @Override
+    public String getStatusLine() {
+        return String.format("  Alarma:      %s", active ? "ACTIVA" : "INACTIVA");
+    }
 }

@@ -1,14 +1,17 @@
-import presentacion.ConsoleUI;
-import aplicacion.StadiumController;
 import aplicacion.PersistenceController;
+import aplicacion.StadiumController;
 import dominio.StadiumFacade;
-import dominio.sensor.EntryCounterSensor;
 import dominio.actuator.AlarmZoneActuator;
 import dominio.actuator.LightingZoneActuator;
 import dominio.factory.DeviceFactory;
-import dominio.factory.SimulatedHardwareFactory;
 import dominio.factory.RealHardwareFactory;
+import dominio.factory.SimulatedHardwareFactory;
+import dominio.sensor.EntryCounterSensor;
+import dominio.sensor.PresenceSensor;
 import dominio.strategy.AutoModeStrategy;
+import presentacion.CommandConsole;
+import presentacion.ConsoleUI;
+
 import java.util.Scanner;
 
 public class Main {
@@ -28,65 +31,63 @@ public class Main {
 
         System.out.println("Modo hardware: " + (useRealHardware ? "REAL (Arduino)" : "SIMULADO"));
 
-        // ── 2. Crear dispositivos ──────────────────────────────────────────
+        // ── 3. Crear dispositivos ──────────────────────────────────────────
         EntryCounterSensor sensorEntrada = factory.createEntryCounterSensor(
                 "ENTRY-01", "Puerta Norte", MAX_CAPACITY);
+        PresenceSensor sensorPresencia   = factory.createPresenceSensor(
+                "PRESENCE-01", "Puerta Norte");
         AlarmZoneActuator  alarma        = factory.createAlarmZoneActuator(
                 "ALARM-01", "Zona General");
         LightingZoneActuator luces       = factory.createLightingZoneActuator(
                 "LIGHT-01", "Zona General");
 
-        // ── 3. Configurar fachada ──────────────────────────────────────────
+        // ── 4. Configurar fachada ──────────────────────────────────────────
         StadiumFacade facade = new StadiumFacade();
         facade.addSensor(sensorEntrada);
+        facade.addSensor(sensorPresencia);
         facade.addActuator(alarma);
         facade.addActuator(luces);
 
-        // ── 4. Observadores ────────────────────────────────────────────────
-        StadiumController    controller  = new StadiumController(facade);
-        ConsoleUI            consola     = new ConsoleUI();
+        // ── 5. Observadores ────────────────────────────────────────────────
+        StadiumController     controller  = new StadiumController(facade);
+        ConsoleUI             consola     = new ConsoleUI();
         PersistenceController persistencia = new PersistenceController();
 
-        sensorEntrada.addObserver(controller);   // logica de negocio
-        sensorEntrada.addObserver(consola);      // presentacion
-        sensorEntrada.addObserver(persistencia); // persistencia en BD
+        sensorEntrada.addObserver(controller);
+        sensorEntrada.addObserver(consola);
+        sensorEntrada.addObserver(persistencia);
 
-        // ── 5. Modo inicial ────────────────────────────────────────────────
-        System.out.println("Inicializando en modo AUTOMATICO...");
+        // ── 6. Modo inicial ────────────────────────────────────────────────
+        System.out.println("Inicializando en modo AUTOMATICO...\n");
         facade.changeMode(new AutoModeStrategy());
-        printEstado(facade, alarma, luces);
 
-        // ── 6. Ejecucion segun modo ────────────────────────────────────────
+        // ── 7. Consola interactiva en hilo separado ────────────────────────
+        CommandConsole commandConsole = new CommandConsole(facade);
+        Thread consoleThread = new Thread(commandConsole, "command-console");
+        consoleThread.setDaemon(true);
+        consoleThread.start();
+
+        // ── 8. Loop principal ──────────────────────────────────────────────
         if (useRealHardware) {
-            runRealHardwareLoop(sensorEntrada, facade, alarma, luces, persistencia);
+            runRealHardwareLoop(sensorEntrada, sensorPresencia);
         } else {
-            runSimulation(sensorEntrada, facade, alarma, luces, persistencia);
+            runSimulation(sensorEntrada);
         }
 
-        // ── 7. Limpieza al cerrar ──────────────────────────────────────────
+        // ── 9. Limpieza al cerrar ──────────────────────────────────────────
+        persistencia.printSummary();
         infraestructura.db.DatabaseManager.getInstance().close();
     }
 
-    // Modo REAL: lee el sensor del Arduino en loop hasta que el usuario detenga el programa
-    private static void runRealHardwareLoop(EntryCounterSensor sensor,
-                                             StadiumFacade facade,
-                                             AlarmZoneActuator alarma,
-                                             LightingZoneActuator luces,
-                                             PersistenceController persistencia) {
-        System.out.println("\nMonitoreo activo. Acerca una persona al sensor HC-SR04.");
-        System.out.println("Presiona Ctrl+C para detener.\n");
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n--- Estado final del sistema ---");
-            printEstado(facade, alarma, luces);
-            persistencia.printSummary();
-            System.out.println("Sistema detenido.");
-        }));
-
+    // Modo REAL: polling continuo al Arduino; la consola interactiva corre en paralelo
+    private static void runRealHardwareLoop(EntryCounterSensor entrySensor,
+                                             PresenceSensor presenceSensor) {
+        System.out.println("Monitoreo activo. Escribe READ para ver el estado, EXIT para salir.\n");
         while (true) {
-            sensor.readValue(); // detecta nuevas entradas desde Arduino y notifica observers
+            entrySensor.readValue();
+            presenceSensor.readValue();
             try {
-                Thread.sleep(300); // consulta cada 300ms
+                Thread.sleep(300);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -94,29 +95,26 @@ public class Main {
         }
     }
 
-    // Modo SIMULADO: demo con entradas ficticias
-    private static void runSimulation(EntryCounterSensor sensor,
-                                       StadiumFacade facade,
-                                       AlarmZoneActuator alarma,
-                                       LightingZoneActuator luces,
-                                       PersistenceController persistencia) {
-        System.out.println("\n--- Fase 1: Entradas normales ---");
-        for (int i = 1; i <= 3; i++) {
+    // Modo SIMULADO: registra entradas ficticias para demostrar el flujo
+    private static void runSimulation(EntryCounterSensor sensor) {
+        System.out.println("Simulacion en curso. Tambien puedes escribir comandos (READ, MODE, etc.)\n");
+
+        pause(1000);
+        System.out.println("--- Simulando entradas ---");
+        for (int i = 1; i <= 6; i++) {
+            pause(600);
             sensor.registerEntry();
-            System.out.printf("  Entrada registrada. Conteo: %d/%d%n",
+            System.out.printf("  Entrada simulada %d/%d%n",
                     sensor.getCurrentCount(), sensor.getMaxCapacity());
         }
 
-        System.out.println("\n--- Fase 2: Se alcanza la capacidad maxima ---");
-        for (int i = 4; i <= 6; i++) {
-            sensor.registerEntry();
-            System.out.printf("  Entrada registrada. Conteo: %d/%d%n",
-                    sensor.getCurrentCount(), sensor.getMaxCapacity());
-        }
+        System.out.println("\nSimulacion terminada. Escribe READ para ver el estado final o EXIT para salir.");
+        // El hilo de consola sigue activo esperando comandos
+        try { Thread.currentThread().join(); } catch (InterruptedException ignored) {}
+    }
 
-        System.out.println("\n--- Estado final del sistema ---");
-        printEstado(facade, alarma, luces);
-        persistencia.printSummary();
+    private static void pause(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
     private static boolean askHardwareMode() {
@@ -132,14 +130,5 @@ public class Main {
             if (input.equals("2")) return true;
             System.out.print("Opcion invalida. Ingresa 1 o 2: ");
         }
-    }
-
-    private static void printEstado(StadiumFacade facade,
-                                     AlarmZoneActuator alarma,
-                                     LightingZoneActuator luces) {
-        System.out.println("  Modo actual:       " + facade.getCurrentMode().getModeName());
-        System.out.println("  Alarma activa:     " + alarma.isActive());
-        System.out.println("  Luces activas:     " + luces.isActive());
-        System.out.println("  Intensidad luces:  " + luces.getIntensityPercent() + "%");
     }
 }

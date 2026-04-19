@@ -35,4 +35,11 @@ public class LightingZoneActuator extends Actuator {
     public int getIntensityPercent() {
         return intensityPercent;
     }
+
+    @Override
+    public String getStatusLine() {
+        return active
+                ? String.format("  Luces:       ON (%d%%)", intensityPercent)
+                : "  Luces:       OFF";
+    }
 }

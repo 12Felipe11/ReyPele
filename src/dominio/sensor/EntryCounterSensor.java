@@ -62,4 +62,9 @@ public class EntryCounterSensor extends Sensor {
     public int getMaxCapacity() {
         return maxCapacity;
     }
+
+    @Override
+    public String getStatusLine() {
+        return String.format("  Entradas:    %d / %d", currentCount, maxCapacity);
+    }
 }

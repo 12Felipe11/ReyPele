@@ -35,6 +35,9 @@ public abstract class Sensor {
 
     public abstract int readValue();
 
+    /** Descripcion legible del estado actual para el comando READ. */
+    public abstract String getStatusLine();
+
     public String getId() {
         return id;
     }

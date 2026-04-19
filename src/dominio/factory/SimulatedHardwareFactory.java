@@ -1,6 +1,7 @@
 package dominio.factory;
 
 import dominio.sensor.EntryCounterSensor;
+import dominio.sensor.PresenceSensor;
 import dominio.actuator.AlarmZoneActuator;
 import dominio.actuator.LightingZoneActuator;
 import infraestructura.IHardwareComm;
@@ -21,6 +22,11 @@ public class SimulatedHardwareFactory extends DeviceFactory {
     public EntryCounterSensor createEntryCounterSensor(String id, String location,
                                                         int maxCapacity) {
         return new EntryCounterSensor(id, location, comm, maxCapacity);
+    }
+
+    @Override
+    public PresenceSensor createPresenceSensor(String id, String location) {
+        return new PresenceSensor(id, location, comm);
     }
 
     @Override
