@@ -13,8 +13,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -25,13 +23,10 @@ import java.util.concurrent.Executors;
  */
 public class WebDashboardServer {
 
-    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
-
     private final StadiumFacade facade;
     private final StadiumController controller;
     private final int port;
     private HttpServer server;
-    private int lastEntryCount = -1;
 
     public WebDashboardServer(StadiumFacade facade, StadiumController controller, int port) {
         this.facade = facade;
@@ -99,10 +94,8 @@ public class WebDashboardServer {
             try {
                 SensorData data = facade.readAllSensors();
                 List<String> actions = facade.evaluateRules();
-                logSnapshot(data, actions);
                 json = buildJson(data, actions);
             } catch (Exception e) {
-                System.err.println("  [STATUS] Error: " + e.getMessage());
                 json = "{\"error\":\"" + escape(e.getMessage()) + "\"}";
             }
             byte[] body = json.getBytes(StandardCharsets.UTF_8);
@@ -110,41 +103,6 @@ public class WebDashboardServer {
             ex.getResponseHeaders().add("Cache-Control", "no-store");
             ex.sendResponseHeaders(200, body.length);
             try (OutputStream os = ex.getResponseBody()) { os.write(body); }
-        }
-    }
-
-    private void logSnapshot(SensorData data, List<String> actions) {
-        String ts = LocalTime.now().format(TS_FMT);
-        float distance = data.getDistanceCm();
-        String distText = distance >= 999f ? "sin-objeto" : String.format("%.1fcm", distance);
-        boolean alarm = facade.getAlarmActuator().isActive();
-        int occTh = facade.getConfig().getOccupancyThreshold();
-        String mode = facade.getCurrentMode().getModeName();
-        boolean hw = facade.getHardware().isConnected();
-
-        System.out.printf(
-                "  [ESTADIO %s] modo=%-9s hw=%-3s dist=%-10s presencia=%-3s entradas=%d/%d luz=%3d%% alarma=%s%n",
-                ts,
-                mode,
-                hw ? "ON" : "OFF",
-                distText,
-                data.isPresenceDetected() ? "SI" : "NO",
-                data.getEntryCount(), occTh,
-                data.getLightIntensity(),
-                alarm ? "ACTIVA" : "off"
-        );
-
-        if (lastEntryCount >= 0 && data.getEntryCount() > lastEntryCount) {
-            int nuevos = data.getEntryCount() - lastEntryCount;
-            System.out.printf("  [ESTADIO %s]   >>> %d nuevo(s) ingreso(s) detectado(s) (total=%d)%n",
-                    ts, nuevos, data.getEntryCount());
-        }
-        lastEntryCount = data.getEntryCount();
-
-        if (actions != null && !actions.isEmpty()) {
-            for (String a : actions) {
-                System.out.printf("  [ESTADIO %s]   accion: %s%n", ts, a);
-            }
         }
     }
 

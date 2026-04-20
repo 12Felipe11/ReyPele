@@ -10,9 +10,10 @@ import dominio.SensorData;
  */
 public class ArduinoSerialAdapter implements IHardwareComm {
 
-    private static final int  BAUD_RATE       = 9600;
-    private static final int  READ_TIMEOUT_MS = 3000;
-    private static final long RESET_DELAY_MS  = 2000;
+    private static final int  BAUD_RATE        = 9600;
+    private static final int  READ_TIMEOUT_MS  = 3000;
+    private static final long READY_WAIT_MS    = 8000;
+    private static final int  READ_RETRIES     = 4;
 
     private final String portName;
     private SerialPort port;
@@ -35,8 +36,17 @@ public class ArduinoSerialAdapter implements IHardwareComm {
                 return;
             }
 
-            System.out.println("  [ARDUINO] Esperando reinicio...");
-            Thread.sleep(RESET_DELAY_MS);
+            System.out.println("  [ARDUINO] Esperando READY del Arduino...");
+            long deadline = System.currentTimeMillis() + READY_WAIT_MS;
+            boolean ready = false;
+            while (System.currentTimeMillis() < deadline) {
+                String line = readLine().trim();
+                if ("READY".equals(line)) { ready = true; break; }
+            }
+            if (!ready) {
+                System.err.println("  [ARDUINO] No llego READY en "
+                        + READY_WAIT_MS + " ms, continuando igual.");
+            }
 
             drain();
             connected = true;
@@ -96,8 +106,16 @@ public class ArduinoSerialAdapter implements IHardwareComm {
     @Override
     public SensorData readSensors() {
         String resp = sendCommand("READ");
-        if (resp.startsWith("DATA:")) return SensorData.parse(resp);
-        System.err.println("  [ARDUINO] Respuesta inesperada: " + resp);
+        // El Arduino tambien publica DATA cada 500 ms por su cuenta, asi
+        // que puede llegar ruido (READY de arranque, ENTRY:n, fragmentos).
+        // Reintentamos leyendo lineas hasta encontrar una DATA:* valida.
+        for (int i = 0; i < READ_RETRIES; i++) {
+            if (resp.startsWith("DATA:")) return SensorData.parse(resp);
+            resp = readLine().trim();
+            if (resp.isEmpty()) break;
+        }
+        System.err.println("  [ARDUINO] Sin respuesta DATA valida tras "
+                + READ_RETRIES + " intentos.");
         return new SensorData(0, 999.0f, false, 0);
     }
 

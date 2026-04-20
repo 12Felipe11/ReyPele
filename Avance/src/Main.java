@@ -3,8 +3,11 @@ import dominio.StadiumFacade;
 import dominio.factory.DeviceFactory;
 import dominio.factory.RealHardwareFactory;
 import dominio.factory.SimulatedHardwareFactory;
+import dominio.persistence.ISensorRepository;
 import infraestructura.ArduinoPortScanner;
 import infraestructura.IHardwareComm;
+import infraestructura.NoOpSensorRepository;
+import infraestructura.SqliteSensorRepository;
 import presentacion.ConsoleUI;
 import presentacion.WebDashboardServer;
 
@@ -62,7 +65,8 @@ public class Main {
             return;
         }
 
-        StadiumFacade facade = new StadiumFacade(hardware);
+        ISensorRepository repository = buildRepository();
+        StadiumFacade facade = new StadiumFacade(hardware, repository);
         StadiumController controller = new StadiumController(facade);
 
         WebDashboardServer web = new WebDashboardServer(facade, controller, DASHBOARD_PORT);
@@ -78,5 +82,18 @@ public class Main {
         web.stop();
         hardware.disconnect();
         scanner.close();
+    }
+
+    /** Persistencia local en SQLite (archivo stadium.db). */
+    private static ISensorRepository buildRepository() {
+        String dbPath = System.getProperty("stadium.db", "stadium.db");
+        try {
+            System.out.println("  [SQLITE] Abriendo base de datos en " + dbPath);
+            return new SqliteSensorRepository(dbPath);
+        } catch (Exception e) {
+            System.err.println("  [SQLITE] Error: " + e.getMessage()
+                    + ". Persistencia deshabilitada.");
+            return new NoOpSensorRepository();
+        }
     }
 }
