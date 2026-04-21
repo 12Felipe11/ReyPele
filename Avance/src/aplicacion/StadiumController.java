@@ -22,6 +22,7 @@ public class StadiumController {
     }
 
     public String processCommand(String input) {
+        System.out.println("Cambio en rama de nuevo");
         String[] parts = input.trim().split("\\s+");
         if (parts.length == 0 || parts[0].isEmpty()) return "";
 
