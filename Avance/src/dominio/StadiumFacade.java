@@ -46,18 +46,25 @@ public class StadiumFacade {
     public synchronized SensorData readAllSensors() {
         SensorData data = hardware.readSensors();
         int count = data.getEntryCount();
+        boolean newEntry = false;
         if (lastEntryCount >= 0 && count > lastEntryCount) {
             int delta = count - lastEntryCount;
             for (int i = 1; i <= delta; i++) {
                 System.out.printf("  [ENTRADA] Nueva entrada registrada. Total: %d%n",
                         lastEntryCount + i);
             }
+            newEntry = true;
+        } else if (lastEntryCount < 0 && count > 0) {
+            newEntry = true;
         }
         lastEntryCount = count;
         entrySensor.updateValue(count);
         distanceSensor.updateValue(data.getDistanceCm(), data.isPresenceDetected());
         lightingActuator.setIntensity(data.getLightIntensity());
-        repository.saveReading(data);
+        if (newEntry) {
+            repository.saveReading(data);
+            repository.recordDailyEntry(count);
+        }
         return data;
     }
 
@@ -70,6 +77,9 @@ public class StadiumFacade {
         if (ok) {
             alarmActuator.setActive(on);
             repository.saveEvent("ALARM", "{\"on\":" + on + "}");
+            if (on) {
+                repository.recordDailyAlarm();
+            }
         }
         return ok;
     }
@@ -89,6 +99,7 @@ public class StadiumFacade {
         config.setOccupancyThreshold(val);
         if (config.getOccupancyThreshold() != before) {
             repository.updateConfig(config.getOccupancyThreshold(), config.getDistanceThreshold());
+            repository.saveConfigHistory(config.getOccupancyThreshold(), config.getDistanceThreshold());
         }
     }
 
@@ -97,6 +108,7 @@ public class StadiumFacade {
         if (ok) {
             config.setDistanceThreshold(cm);
             repository.updateConfig(config.getOccupancyThreshold(), config.getDistanceThreshold());
+            repository.saveConfigHistory(config.getOccupancyThreshold(), config.getDistanceThreshold());
         }
         return ok;
     }
