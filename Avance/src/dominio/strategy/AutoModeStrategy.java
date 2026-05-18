@@ -12,26 +12,25 @@ public class AutoModeStrategy implements IStadiumModeStrategy {
     public List<String> evaluate(StadiumFacade f) {
         List<String> actions = new ArrayList<>();
 
-        // Detección de presencia
-        boolean presence = f.getDistanceSensor().isPresenceDetected();
-        if (presence) {
-            actions.add("Presencia detectada");
-        } else {
-            actions.add("Sin presencia");
+        // Accion automatica: baja iluminacion -> encender luces
+        int light = f.getLightingActuator().getIntensity();
+        if (light < 30 && !f.getLightingActuator().isActive()) {
+            f.setLight(100);
+            actions.add("Baja iluminacion detectada -> LUCES ON");
         }
 
-        // HU-07: alarma por sobreocupacion
+        // Accion automatica: capacidad del estadio completa -> activar alarma
         int count = f.getEntrySensor().getCount();
         int threshold = f.getConfig().getOccupancyThreshold();
-        if (count > threshold) {
+        if (count >= threshold) {
             if (!f.getAlarmActuator().isActive()) {
                 f.setAlarm(true);
-                actions.add("Entradas (" + count + ") > umbral (" + threshold + ") -> ALARMA");
+                actions.add("umbral alcanzado, ALARM ON");
             }
         } else {
             if (f.getAlarmActuator().isActive()) {
                 f.setAlarm(false);
-                actions.add("Ocupacion normalizada -> Alarma desactivada");
+                actions.add("Ocupacion normalizada -> ALARM OFF");
             }
         }
 
