@@ -118,7 +118,7 @@ public class StadiumController {
             if ("THRESHOLD".equals(type)) {
                 int val = Integer.parseInt(parts[2]);
                 if (val <= 0) return "  Debe ser positivo.";
-                facade.getConfig().setOccupancyThreshold(val);
+                facade.setOccupancyThreshold(val);
                 return "  Umbral de ocupacion: " + val + " personas";
             } else if ("DISTANCE".equals(type)) {
                 float cm = Float.parseFloat(parts[2]);

@@ -3,9 +3,11 @@ import dominio.StadiumFacade;
 import dominio.factory.DeviceFactory;
 import dominio.factory.RealHardwareFactory;
 import dominio.factory.SimulatedHardwareFactory;
+import dominio.persistence.ISensorRepository;
 import infraestructura.ArduinoPortScanner;
 import infraestructura.IHardwareComm;
-import presentacion.ConsoleEventLogger;
+import infraestructura.NoOpSensorRepository;
+import infraestructura.SqliteSensorRepository;
 import presentacion.ConsoleUI;
 import presentacion.CsvEventLogger;
 import presentacion.WebDashboardServer;
@@ -35,6 +37,8 @@ public class Main {
         String option = scanner.nextLine().trim();
 
         DeviceFactory factory;
+        String sessionSource;
+
         if ("2".equals(option)) {
             String port = ArduinoPortScanner.detect();
             if (port != null) {
@@ -53,8 +57,10 @@ public class Main {
                 return;
             }
             factory = new RealHardwareFactory(port);
+            sessionSource = "arduino:" + port;
         } else {
             factory = new SimulatedHardwareFactory();
+            sessionSource = "simulator";
         }
 
         IHardwareComm hardware = factory.createHardwareComm();
@@ -65,7 +71,10 @@ public class Main {
             return;
         }
 
-        StadiumFacade facade = new StadiumFacade(hardware);
+        ISensorRepository repository = buildRepository();
+        repository.openSession(sessionSource);
+
+        StadiumFacade facade = new StadiumFacade(hardware, repository);
         StadiumController controller = new StadiumController(facade);
 
         // Patron Observer: suscribir loggers a los eventos de la fachada
@@ -91,6 +100,20 @@ public class Main {
         web.stop();
         if (csvLogger != null) csvLogger.close();
         hardware.disconnect();
+        repository.close();
         scanner.close();
+    }
+
+    /** Persistencia local en SQLite (archivo stadium.db). */
+    private static ISensorRepository buildRepository() {
+        String dbPath = System.getProperty("stadium.db", "stadium.db");
+        try {
+            System.out.println("  [SQLITE] Abriendo base de datos en " + dbPath);
+            return new SqliteSensorRepository(dbPath);
+        } catch (Exception e) {
+            System.err.println("  [SQLITE] Error: " + e.getMessage()
+                    + ". Persistencia deshabilitada.");
+            return new NoOpSensorRepository();
+        }
     }
 }
