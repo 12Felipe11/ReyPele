@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Avance - Sistema de Control de Estadio Inteligente</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #111a2e;
+    --accent: #5cc8ff;
+    --accent-2: #ffd166;
+    --text: #e8eef7;
+    --muted: #9fb0c7;
+    --border: #1f2d48;
+    --code-bg: #0a1426;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 60px 80px;
+    display: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    animation: fade .35s ease;
+    overflow: auto;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  h1 {
+    font-size: 48px;
+    margin: 0 0 8px 0;
+    color: var(--accent);
+    letter-spacing: .5px;
+  }
+  h2 {
+    font-size: 34px;
+    margin: 0 0 24px 0;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+  }
+  h3 {
+    font-size: 22px;
+    color: var(--accent-2);
+    margin: 18px 0 8px 0;
+  }
+  p, li { font-size: 20px; line-height: 1.55; }
+  ul { margin: 8px 0 8px 24px; }
+  li { margin-bottom: 6px; }
+  code, pre {
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 16px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    overflow: auto;
+    color: #d6e1f2;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 14px;
+    margin-right: 6px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card h3 { margin-top: 0; }
+  .muted { color: var(--muted); }
+  .center {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .hero {
+    font-size: 22px;
+    color: var(--muted);
+  }
+
+  .nav {
+    position: fixed;
+    bottom: 18px; right: 22px;
+    display: flex; gap: 8px;
+    z-index: 10;
+  }
+  .nav button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .nav button:hover { border-color: var(--accent); }
+  .counter {
+    position: fixed;
+    bottom: 22px; left: 24px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width .3s ease;
+  }
+  .kbd {
+    background: #1a243d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 17px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent-2); }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 Portada -->
+  <section class="slide center">
+    <h1>Carpeta <span style="color:var(--accent-2)">Avance</span></h1>
+    <p class="hero">Sistema de Control de Estadio Inteligente</p>
+    <p class="muted">Java + Arduino (HC-SR04 + OLED SSD1306)</p>
+    <p class="muted" style="margin-top:40px">Laboratorio 1 - Avance de proyecto</p>
+  </section>
+
+  <!-- 2 Qué es -->
+  <section class="slide">
+    <h2>¿Que es Avance?</h2>
+    <p>Modulo Java que se comunica con un Arduino via puerto serial para leer sensores, controlar actuadores y exponer el estado del estadio.</p>
+    <div class="grid-3" style="margin-top:20px">
+      <div class="card">
+        <h3>Objetivo</h3>
+        <p>Integrar hardware real (Arduino) con una aplicacion Java por capas.</p>
+      </div>
+      <div class="card">
+        <h3>Entradas</h3>
+        <p>Lectura de distancia, presencia, conteo de personas e intensidad de luz.</p>
+      </div>
+      <div class="card">
+        <h3>Salidas</h3>
+        <p>Consola interactiva, dashboard web en <code>:8080</code> y pantalla OLED en Arduino.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 Hardware -->
+  <section class="slide">
+    <h2>Hardware</h2>
+    <ul>
+      <li><b>Arduino Uno R3</b> - microcontrolador ATmega328p.</li>
+      <li><b>HC-SR04</b> - sensor ultrasonico (distancia / presencia).</li>
+      <li><b>OLED SSD1306 128x64</b> - pantalla local de estado.</li>
+      <li>LED integrado como indicador de fallo de pantalla.</li>
+    </ul>
+    <h3>Pines</h3>
+    <pre>TRIG_PIN = 9
+ECHO_PIN = 8
+I2C OLED  = A4/A5 (SDA/SCL)</pre>
+  </section>
+
+  <!-- 4 Estructura -->
+  <section class="slide">
+    <h2>Estructura de la carpeta</h2>
+<pre>Avance/
+├── arduino/stadium_sensors/stadium_sensors.ino   # Firmware
+├── docs/arduino_code.html                        # Codigo Arduino renderizado
+├── historias_de_usuario.md                       # HU-01 .. HU-14
+├── lib/jSerialComm-2.11.0.jar                    # Libreria serial
+├── src/                                          # Fuente Java
+│   ├── Main.java
+│   ├── aplicacion/    StadiumController.java
+│   ├── dominio/       Facade, Config, SensorData, actuator/, factory/,
+│   │                  sensor/, strategy/
+│   ├── infraestructura/ IHardwareComm, ArduinoSerialAdapter,
+│   │                    SimulatorAdapter, ArduinoPortScanner
+│   └── presentacion/  ConsoleUI, WebDashboardServer, DashboardHtml
+└── out/                                          # .class compilados</pre>
+  </section>
+
+  <!-- 5 Arquitectura -->
+  <section class="slide">
+    <h2>Arquitectura por capas</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Presentacion</h3>
+        <p>Consola (<code>ConsoleUI</code>) + dashboard web (<code>WebDashboardServer</code> en <code>:8080</code>).</p>
+      </div>
+      <div class="card">
+        <h3>Aplicacion</h3>
+        <p><code>StadiumController</code> interpreta comandos: READ, LIGHT, ALARM, MODE, SET, STATUS, HELP, EXIT.</p>
+      </div>
+      <div class="card">
+        <h3>Dominio</h3>
+        <p><code>StadiumFacade</code> orquesta sensores, actuadores, config y estrategias de modo.</p>
+      </div>
+      <div class="card">
+        <h3>Infraestructura</h3>
+        <p><code>IHardwareComm</code> + adaptadores: Arduino real (serial) o simulador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 Dominio -->
+  <section class="slide">
+    <h2>Capa de Dominio</h2>
+    <h3>Sensores</h3>
+    <ul>
+      <li><code>DistanceSensor</code> - distancia en cm + estado de presencia.</li>
+      <li><code>EntryCounterSensor</code> - contador de personas en la puerta.</li>
+    </ul>
+    <h3>Actuadores</h3>
+    <ul>
+      <li><code>LightingZoneActuator</code> - intensidad por zona (0-100%).</li>
+      <li><code>AlarmActuator</code> - activa/desactiva alarma.</li>
+    </ul>
+    <h3>Modelo comun</h3>
+    <ul>
+      <li><code>SensorData</code> parsea la trama <code>DATA:count,dist,pres,light</code>.</li>
+      <li><code>StadiumConfig</code> guarda umbral de ocupacion y de distancia.</li>
+    </ul>
+  </section>
+
+  <!-- 7 Aplicación -->
+  <section class="slide">
+    <h2>Capa de Aplicacion</h2>
+    <p><code>StadiumController</code> es el cerebro de comandos. Convierte texto del operador en llamadas a la fachada.</p>
+<pre>READ                       -> facade.readAllSensors()
+LIGHT &lt;0-100|ON|OFF&gt;       -> facade.setLight(i)
+ALARM ON|OFF               -> facade.setAlarm(bool)
+MODE AUTO|MANUAL|EMERGENCY -> facade.changeMode(strategy)
+SET THRESHOLD &lt;personas&gt;
+SET DISTANCE  &lt;cm&gt;
+STATUS / HELP / EXIT</pre>
+    <p class="muted">Cada comando respeta el modo activo (por ejemplo, MANUAL bloquea automatizaciones).</p>
+  </section>
+
+  <!-- 8 Infraestructura -->
+  <section class="slide">
+    <h2>Capa de Infraestructura</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>IHardwareComm</h3>
+        <p>Interfaz comun: <code>connect</code>, <code>readSensors</code>, <code>setAlarm</code>, <code>setLight</code>, <code>setThreshold</code>.</p>
+      </div>
+      <div class="card">
+        <h3>ArduinoSerialAdapter</h3>
+        <p>Comunicacion real con Arduino via <b>jSerialComm</b> a 9600 baud. Timeout 3s, reset 2s.</p>
+      </div>
+      <div class="card">
+        <h3>SimulatorAdapter</h3>
+        <p>Genera datos sinteticos para probar sin hardware (HU-14).</p>
+      </div>
+      <div class="card">
+        <h3>ArduinoPortScanner</h3>
+        <p>Autodeteccion de puerto (COMx, /dev/ttyACM*, /dev/ttyUSB*).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 Presentación -->
+  <section class="slide">
+    <h2>Capa de Presentacion</h2>
+    <ul>
+      <li><b>ConsoleUI</b> - loop interactivo por teclado.</li>
+      <li><b>WebDashboardServer</b> - servidor HTTP embebido en puerto <code>8080</code>, se abre en el navegador al iniciar.</li>
+      <li><b>DashboardHtml</b> - plantilla HTML del tablero con el estado en vivo.</li>
+    </ul>
+    <p class="muted">El usuario ve dos vistas simultaneas: consola + tablero web.</p>
+  </section>
+
+  <!-- 10 Arduino -->
+  <section class="slide">
+    <h2>Firmware Arduino (<code>stadium_sensors.ino</code>)</h2>
+    <ul>
+      <li>Mide distancia con HC-SR04 cada ciclo.</li>
+      <li>Detecta "paso" cuando el objeto se acerca y luego se aleja (bloqueo 800 ms anti-rebote).</li>
+      <li>Emite evento <code>ENTRY:n</code> en cada conteo nuevo.</li>
+      <li>Envia telemetria <code>DATA:...</code> cada 500 ms.</li>
+      <li>Actualiza pantalla OLED con distancia, contador y estado de actuadores.</li>
+    </ul>
+  </section>
+
+  <!-- 11 Protocolo -->
+  <section class="slide">
+    <h2>Protocolo serial (9600 baud)</h2>
+    <h3>Arduino -> Java</h3>
+<pre>READY                              // handshake de arranque
+DATA:count,distance,presence,light // telemetria cada 500ms
+ENTRY:totalCount                   // evento por paso detectado</pre>
+    <h3>Java -> Arduino</h3>
+<pre>READ                  // pide lectura inmediata
+ALARM_ON / ALARM_OFF
+LIGHT_SET:0-100
+SET_THRESHOLD:cm      // umbral del sensor de distancia</pre>
+  </section>
+
+  <!-- 12 Patrones -->
+  <section class="slide">
+    <h2>Patrones de diseno aplicados</h2>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Facade</h3>
+        <p><code>StadiumFacade</code> oculta la complejidad de sensores/actuadores/modos.</p>
+      </div>
+      <div class="card">
+        <h3>Strategy</h3>
+        <p><code>IStadiumModeStrategy</code> con variantes <b>Auto</b>, <b>Manual</b> y <b>Emergency</b>.</p>
+      </div>
+      <div class="card">
+        <h3>Factory</h3>
+        <p><code>DeviceFactory</code> -> <b>RealHardwareFactory</b> o <b>SimulatedHardwareFactory</b>.</p>
+      </div>
+      <div class="card">
+        <h3>Adapter</h3>
+        <p><code>ArduinoSerialAdapter</code> adapta jSerialComm a <code>IHardwareComm</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Observer (informal)</h3>
+        <p>Eventos <code>ENTRY:</code> propagan cambios desde el Arduino.</p>
+      </div>
+      <div class="card">
+        <h3>MVC por capas</h3>
+        <p>Presentacion / Aplicacion / Dominio / Infraestructura.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 Historias -->
+  <section class="slide">
+    <h2>Historias de usuario</h2>
+    <table>
+      <tr><th>ID</th><th>Descripcion</th><th>Estado</th></tr>
+      <tr><td>HU-01</td><td>Leer sensores (READ)</td><td class="tag">Alcance lab</td></tr>
+      <tr><td>HU-02</td><td>Mostrar datos en consola</td><td class="tag">Alcance lab</td></tr>
+      <tr><td>HU-03</td><td>Contar entradas al estadio</td><td class="tag">Alcance lab</td></tr>
+      <tr><td>HU-04 / HU-05</td><td>Control de luces (manual / auto)</td><td>Implementado</td></tr>
+      <tr><td>HU-06 / HU-07</td><td>Alarma (manual / por sobreocupacion)</td><td>Implementado</td></tr>
+      <tr><td>HU-08..11</td><td>Modos AUTO / MANUAL / EMERGENCY</td><td>Implementado</td></tr>
+      <tr><td>HU-12</td><td>Configurar thresholds</td><td>Implementado</td></tr>
+      <tr><td>HU-13</td><td>Hardware real</td><td class="tag">Alcance lab</td></tr>
+      <tr><td>HU-14</td><td>Simulador</td><td>Implementado</td></tr>
+    </table>
+  </section>
+
+  <!-- 14 Flujo -->
+  <section class="slide">
+    <h2>Flujo al iniciar</h2>
+    <ol>
+      <li><code>Main</code> pregunta: <b>1) Simulador</b> o <b>2) Arduino</b>.</li>
+      <li>Si es Arduino, <code>ArduinoPortScanner</code> detecta el puerto.</li>
+      <li>La fabrica crea el <code>IHardwareComm</code> correspondiente.</li>
+      <li>Se instancia <code>StadiumFacade</code> + <code>StadiumController</code>.</li>
+      <li>Arranca <code>WebDashboardServer</code> en <code>http://localhost:8080</code>.</li>
+      <li>Arranca <code>ConsoleUI</code> - loop de comandos hasta <code>EXIT</code>.</li>
+    </ol>
+  </section>
+
+  <!-- 15 Cómo correr -->
+  <section class="slide">
+    <h2>Como ejecutar</h2>
+    <h3>Compilar</h3>
+<pre>javac -cp "Avance/lib/jSerialComm-2.11.0.jar" \
+      -d Avance/out $(find Avance/src -name "*.java")</pre>
+    <h3>Ejecutar</h3>
+<pre>java -cp "Avance/out:Avance/lib/jSerialComm-2.11.0.jar" Main</pre>
+    <h3>Subir firmware</h3>
+<pre>Arduino IDE -> abrir Avance/arduino/stadium_sensors/stadium_sensors.ino
+             -> seleccionar Uno -> Upload</pre>
+  </section>
+
+  <!-- 16 Cierre -->
+  <section class="slide center">
+    <h1>Gracias</h1>
+    <p class="hero">Preguntas y demo</p>
+    <p class="muted" style="margin-top:40px">
+      Navegacion: <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>
+      &nbsp; o <span class="kbd">Espacio</span>
+    </p>
+  </section>
+
+</div>
+
+<div class="counter"><span id="cur">1</span> / <span id="tot">1</span></div>
+<div class="nav">
+  <button onclick="go(-1)">&larr;</button>
+  <button onclick="go(1)">&rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const curEl = document.getElementById('cur');
+  const totEl = document.getElementById('tot');
+  const progressEl = document.getElementById('progress');
+  totEl.textContent = total;
+  let idx = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    curEl.textContent = idx + 1;
+    progressEl.style.width = ((idx + 1) / total * 100) + '%';
+  }
+
+  function go(delta) {
+    idx = Math.max(0, Math.min(total - 1, idx + delta));
+    render();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(1);
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+  });
+
+  render();
+</script>
+</body>
+</html>

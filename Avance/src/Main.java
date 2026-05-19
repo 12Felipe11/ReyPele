@@ -9,8 +9,10 @@ import infraestructura.IHardwareComm;
 import infraestructura.NoOpSensorRepository;
 import infraestructura.SqliteSensorRepository;
 import presentacion.ConsoleUI;
+import presentacion.CsvEventLogger;
 import presentacion.WebDashboardServer;
 
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -75,6 +77,16 @@ public class Main {
         StadiumFacade facade = new StadiumFacade(hardware, repository);
         StadiumController controller = new StadiumController(facade);
 
+        // Patron Observer: suscribir loggers a los eventos de la fachada
+        facade.addObserver(new ConsoleEventLogger());
+        CsvEventLogger csvLogger = null;
+        try {
+            csvLogger = new CsvEventLogger("stadium_events.csv");
+            facade.addObserver(csvLogger);
+        } catch (IOException e) {
+            System.err.println("  [CSV] No se pudo abrir stadium_events.csv: " + e.getMessage());
+        }
+
         WebDashboardServer web = new WebDashboardServer(facade, controller, DASHBOARD_PORT);
         try {
             web.start();
@@ -86,6 +98,7 @@ public class Main {
         ui.run();
 
         web.stop();
+        if (csvLogger != null) csvLogger.close();
         hardware.disconnect();
         repository.close();
         scanner.close();
