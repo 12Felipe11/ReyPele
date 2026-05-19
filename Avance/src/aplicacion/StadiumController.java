@@ -2,9 +2,7 @@ package aplicacion;
 
 import dominio.SensorData;
 import dominio.StadiumFacade;
-import dominio.strategy.AutoModeStrategy;
-import dominio.strategy.EmergencyModeStrategy;
-import dominio.strategy.ManualModeStrategy;
+import dominio.strategy.ModeStrategyFactory;
 
 import java.util.List;
 
@@ -67,16 +65,23 @@ public class StadiumController {
     private String handleLight(String[] parts) {
         if (parts.length < 2)
             return "  Uso: LIGHT <0-100> | LIGHT ON | LIGHT OFF";
+
         if (!facade.getCurrentMode().canControlLight())
             return "  No permitido en modo " + facade.getCurrentMode().getModeName();
+
         String arg = parts[1].toUpperCase();
         int intensity;
-        if ("ON".equals(arg))       intensity = 100;
+
+        if ("ON".equals(arg)) intensity = 100;
         else if ("OFF".equals(arg)) intensity = 0;
         else {
-            try { intensity = Integer.parseInt(arg); }
-            catch (NumberFormatException e) { return "  Valor invalido."; }
+            try {
+                intensity = Integer.parseInt(arg);
+            } catch (NumberFormatException e) {
+                return "  Valor invalido.";
+            }
         }
+
         facade.setLight(intensity);
         return "  Luces: " + intensity + "%";
     }
@@ -84,10 +89,13 @@ public class StadiumController {
     /** HU-06 */
     private String handleAlarm(String[] parts) {
         if (parts.length < 2) return "  Uso: ALARM ON|OFF";
+
         if (!facade.getCurrentMode().canControlAlarm())
             return "  No permitido en modo " + facade.getCurrentMode().getModeName();
+
         boolean on = "ON".equalsIgnoreCase(parts[1]);
         facade.setAlarm(on);
+
         return "  Alarma: " + (on ? "ACTIVADA" : "DESACTIVADA");
     }
 
@@ -95,17 +103,23 @@ public class StadiumController {
     private String handleMode(String[] parts) {
         if (parts.length < 2)
             return "  Uso: MODE AUTO|MANUAL|EMERGENCY";
+
         String name = parts[1].toUpperCase();
-        switch (name) {
-            case "AUTO":      facade.changeMode(new AutoModeStrategy()); break;
-            case "MANUAL":    facade.changeMode(new ManualModeStrategy()); break;
-            case "EMERGENCY": facade.changeMode(new EmergencyModeStrategy()); break;
-            default: return "  Modo invalido. Opciones: AUTO, MANUAL, EMERGENCY";
+
+        if (!name.equals("AUTO") && !name.equals("MANUAL") && !name.equals("EMERGENCY")) {
+            return "  Modo invalido. Opciones: AUTO, MANUAL, EMERGENCY";
         }
+
+        // Refactor real: el Controller ya no instancia estrategias concretas.
+        // Ahora delega la creación a una Factory.
+        facade.changeMode(ModeStrategyFactory.create(name));
+
         StringBuilder sb = new StringBuilder();
         sb.append("  Modo cambiado a: ").append(name).append("\n");
+
         List<String> actions = facade.evaluateRules();
         for (String a : actions) sb.append("  > ").append(a).append("\n");
+
         return sb.toString();
     }
 
@@ -113,7 +127,9 @@ public class StadiumController {
     private String handleSet(String[] parts) {
         if (parts.length < 3)
             return "  Uso: SET THRESHOLD <personas> | SET DISTANCE <cm>";
+
         String type = parts[1].toUpperCase();
+
         try {
             if ("THRESHOLD".equals(type)) {
                 int val = Integer.parseInt(parts[2]);
@@ -129,6 +145,7 @@ public class StadiumController {
         } catch (NumberFormatException e) {
             return "  Valor invalido.";
         }
+
         return "  Uso: SET THRESHOLD <N> | SET DISTANCE <cm>";
     }
 
