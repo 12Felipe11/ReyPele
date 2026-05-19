@@ -35,6 +35,8 @@ public class Main {
         String option = scanner.nextLine().trim();
 
         DeviceFactory factory;
+        String sessionSource;
+
         if ("2".equals(option)) {
             String port = ArduinoPortScanner.detect();
             if (port != null) {
@@ -53,8 +55,10 @@ public class Main {
                 return;
             }
             factory = new RealHardwareFactory(port);
+            sessionSource = "arduino:" + port;
         } else {
             factory = new SimulatedHardwareFactory();
+            sessionSource = "simulator";
         }
 
         IHardwareComm hardware = factory.createHardwareComm();
@@ -66,6 +70,8 @@ public class Main {
         }
 
         ISensorRepository repository = buildRepository();
+        repository.openSession(sessionSource);
+
         StadiumFacade facade = new StadiumFacade(hardware, repository);
         StadiumController controller = new StadiumController(facade);
 
@@ -81,6 +87,7 @@ public class Main {
 
         web.stop();
         hardware.disconnect();
+        repository.close();
         scanner.close();
     }
 
