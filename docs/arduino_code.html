@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReyPele - Codigo Arduino</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2333;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --cyan: #79c0ff;
+    --yellow: #e3b341;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    padding: 30px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+  }
+  header h1 {
+    font-size: 2em;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+  header p { color: var(--text-dim); font-size: 1.1em; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    margin: 3px;
+  }
+  .badge-blue   { background:#1f3d5c; color:var(--accent); }
+  .badge-green  { background:#1a3524; color:var(--green); }
+  .badge-orange { background:#3d2e10; color:var(--orange); }
+
+  section { margin-bottom: 35px; }
+  section h2 {
+    color: var(--green);
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  section h2::before { content: "# "; color: var(--text-dim); }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg2);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th {
+    background: var(--bg3);
+    text-align: left;
+    padding: 10px 15px;
+    color: var(--accent);
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td {
+    padding: 8px 15px;
+    border-top: 1px solid var(--border);
+    font-size: 0.95em;
+  }
+  td code {
+    background: var(--bg3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code','Fira Code','Consolas', monospace;
+    font-size: 0.9em;
+    color: var(--cyan);
+  }
+
+  /* Hardware cards */
+  .hw-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+  }
+  .hw-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .hw-card h3 {
+    color: var(--orange);
+    margin-bottom: 10px;
+    font-size: 1em;
+  }
+  .hw-card .pin-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.9em;
+  }
+  .hw-card .pin-label { color: var(--text-dim); }
+  .hw-card .pin-value { color: var(--cyan); font-family: monospace; }
+
+  /* Code block */
+  .code-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .code-header {
+    background: var(--bg3);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .code-header span { color: var(--text-dim); font-size: 0.85em; }
+  .code-header .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:6px; }
+  .dot-r { background: var(--red); }
+  .dot-y { background: var(--orange); }
+  .dot-g { background: var(--green); }
+
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code','Fira Code','Consolas', monospace;
+    font-size: 0.85em;
+    line-height: 1.7;
+    counter-reset: line;
+    tab-size: 2;
+  }
+  pre .line {
+    display: block;
+  }
+  pre .line::before {
+    counter-increment: line;
+    content: counter(line);
+    display: inline-block;
+    width: 3em;
+    margin-right: 1.5em;
+    text-align: right;
+    color: #484f58;
+    border-right: 1px solid #30363d;
+    padding-right: 1em;
+    user-select: none;
+  }
+
+  /* Syntax tokens */
+  .cmt     { color: #6a737d; font-style: italic; }
+  .pre     { color: #f97583; }
+  .kw      { color: #ff7b72; }
+  .type    { color: var(--cyan); }
+  .str     { color: #a5d6ff; }
+  .num     { color: var(--purple); }
+  .fn      { color: #d2a8ff; }
+  .const-v { color: var(--orange); }
+  .macro   { color: #ffa657; }
+
+  /* OLED mockup */
+  .oled-mockup {
+    background: #000;
+    border: 3px solid #333;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #00e5ff;
+    line-height: 1.5;
+    max-width: 320px;
+    margin: 15px auto;
+    text-align: left;
+    box-shadow: 0 0 20px rgba(0,229,255,0.1);
+  }
+  .oled-mockup .big { font-size: 20px; font-weight: bold; }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-dim);
+    font-size: 0.85em;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ReyPele</h1>
+  <p>Sistema de Control de Estadio Inteligente &mdash; Firmware Arduino</p>
+  <div style="margin-top:12px">
+    <span class="badge badge-blue">Arduino Uno R3</span>
+    <span class="badge badge-green">HC-SR04 Ultrasonico</span>
+    <span class="badge badge-orange">OLED SSD1306 128x64</span>
+  </div>
+</header>
+
+<!-- =========== HARDWARE =========== -->
+<section>
+  <h2>Hardware y Conexiones</h2>
+  <div class="hw-grid">
+    <div class="hw-card">
+      <h3>HC-SR04 &mdash; Sensor Ultrasonico</h3>
+      <div class="pin-row"><span class="pin-label">TRIG</span> <span class="pin-value">Pin D9</span></div>
+      <div class="pin-row"><span class="pin-label">ECHO</span> <span class="pin-value">Pin D8</span></div>
+      <div class="pin-row"><span class="pin-label">VCC</span>  <span class="pin-value">5V</span></div>
+      <div class="pin-row"><span class="pin-label">GND</span>  <span class="pin-value">GND</span></div>
+      <p style="color:var(--text-dim); font-size:0.85em; margin-top:10px">
+        Rango: 2cm &ndash; 400cm | Umbral por defecto: 30cm
+      </p>
+    </div>
+    <div class="hw-card">
+      <h3>SSD1306 &mdash; Pantalla OLED 128x64</h3>
+      <div class="pin-row"><span class="pin-label">SDA</span>  <span class="pin-value">Pin A4 (I2C)</span></div>
+      <div class="pin-row"><span class="pin-label">SCL</span>  <span class="pin-value">Pin A5 (I2C)</span></div>
+      <div class="pin-row"><span class="pin-label">VCC</span>  <span class="pin-value">3.3V</span></div>
+      <div class="pin-row"><span class="pin-label">GND</span>  <span class="pin-value">GND</span></div>
+      <p style="color:var(--text-dim); font-size:0.85em; margin-top:10px">
+        Direccion I2C: 0x3C | Libreria: Adafruit_SSD1306
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =========== OLED PREVIEW =========== -->
+<section>
+  <h2>Vista OLED en Tiempo Real</h2>
+  <div class="oled-mockup">
+    === REYPELE ===<br>
+    Dist: 24.5 cm<br>
+    <span class="big">Ent:  12</span><br>
+    [ALM:--] L:75%&nbsp;&nbsp;&nbsp;*
+  </div>
+</section>
+
+<!-- =========== PROTOCOLO =========== -->
+<section>
+  <h2>Protocolo Serial (9600 baud)</h2>
+
+  <table>
+    <thead>
+      <tr><th>Direccion</th><th>Mensaje</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Arduino &rarr; Java</td>
+        <td><code>DATA:count,dist,pres,luz</code></td>
+        <td>Datos periodicos cada 500ms</td>
+      </tr>
+      <tr>
+        <td>Arduino &rarr; Java</td>
+        <td><code>ENTRY:totalCount</code></td>
+        <td>Evento inmediato al detectar entrada</td>
+      </tr>
+      <tr>
+        <td>Arduino &rarr; Java</td>
+        <td><code>READY</code></td>
+        <td>Arduino listo tras reinicio</td>
+      </tr>
+      <tr>
+        <td>Java &rarr; Arduino</td>
+        <td><code>READ</code></td>
+        <td>Solicitar lectura inmediata</td>
+      </tr>
+      <tr>
+        <td>Java &rarr; Arduino</td>
+        <td><code>ALARM_ON</code> / <code>ALARM_OFF</code></td>
+        <td>Activar / desactivar alarma</td>
+      </tr>
+      <tr>
+        <td>Java &rarr; Arduino</td>
+        <td><code>LIGHT_SET:0-100</code></td>
+        <td>Intensidad de luces (porcentaje)</td>
+      </tr>
+      <tr>
+        <td>Java &rarr; Arduino</td>
+        <td><code>SET_THRESHOLD:cm</code></td>
+        <td>Umbral de distancia para deteccion</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:15px; padding:12px 16px; background:var(--bg2); border-left:3px solid var(--accent); border-radius:4px; font-size:0.9em;">
+    <strong style="color:var(--accent)">Ejemplo de DATA:</strong><br>
+    <code>DATA:12,24.5,1,75</code> &rarr; 12 entradas, 24.5cm, presencia SI, luces 75%
+  </div>
+</section>
+
+<!-- =========== LOGICA =========== -->
+<section>
+  <h2>Logica de Conteo</h2>
+  <div style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:18px; font-size:0.95em;">
+    <p style="margin-bottom:10px">El conteo de entradas usa <strong style="color:var(--cyan)">deteccion por flanco</strong> con el sensor ultrasonico:</p>
+    <ol style="padding-left:20px; color:var(--text-dim);">
+      <li style="margin:6px 0">Persona se acerca &rarr; distancia cae por debajo de <code>umbralDistancia</code> (30cm) &rarr; <code style="color:var(--orange)">presenciaDetectada = true</code></li>
+      <li style="margin:6px 0">Persona se aleja &rarr; distancia sube por encima del umbral &rarr; se registra <strong style="color:var(--green)">+1 entrada</strong></li>
+      <li style="margin:6px 0">Bloqueo de 800ms para <strong>no duplicar conteos</strong> (HU-03)</li>
+    </ol>
+  </div>
+</section>
+
+<!-- =========== CODIGO =========== -->
+<section>
+  <h2>Codigo Fuente Completo</h2>
+  <div class="code-container">
+    <div class="code-header">
+      <div>
+        <span class="dot dot-r"></span>
+        <span class="dot dot-y"></span>
+        <span class="dot dot-g"></span>
+      </div>
+      <span>stadium_sensors.ino</span>
+    </div>
+    <pre id="codeBlock"></pre>
+  </div>
+</section>
+
+<footer>
+  ReyPele &mdash; Sistema de Control de Estadio Inteligente | Arduino Uno R3 + HC-SR04 + SSD1306
+</footer>
+
+<script>
+const RAW_CODE = `// =====================================================================
+// ReyPele - Sistema de Control de Estadio Inteligente
+// Sensor: HC-SR04 (ultrasonico) | Pantalla: OLED SSD1306 128x64
+//
+// PROTOCOLO SERIAL (9600 baud):
+//   Arduino -> Java (cada 500ms):  DATA:count,distance,presence,light
+//   Arduino -> Java (por evento):  ENTRY:totalCount
+//   Java -> Arduino (comandos):    ALARM_ON / ALARM_OFF
+//                                  LIGHT_SET:0-100
+//                                  SET_THRESHOLD:cm
+//                                  READ
+// =====================================================================
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// --- Pantalla OLED ---
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// --- Pines HC-SR04 ---
+const int TRIG_PIN = 9;
+const int ECHO_PIN = 8;
+
+// --- Variables sensor ---
+long duration;
+float distanceCm;
+
+// --- Logica de conteo ---
+int entryCount = 0;
+bool presenciaDetectada = false;
+float umbralDistancia = 30.0;       // cm para considerar "paso"
+unsigned long tiempoBloqueo = 0;
+const unsigned long BLOQUEO_MS = 800;
+
+// --- Estados de actuadores (recibidos desde Java) ---
+bool alarmActive = false;
+int lightIntensity = 0;
+
+// --- Envio periodico de datos ---
+unsigned long lastDataSend = 0;
+const unsigned long DATA_INTERVAL_MS = 500;
+
+// =====================================================================
+void setup() {
+  Serial.begin(9600);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    pinMode(LED_BUILTIN, OUTPUT);
+    while (true) {
+      digitalWrite(LED_BUILTIN, HIGH); delay(200);
+      digitalWrite(LED_BUILTIN, LOW);  delay(200);
+    }
+  }
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("ReyPele Stadium");
+  display.println("Iniciando...");
+  display.display();
+  delay(2000);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  Serial.println("READY");
+}
+
+// =====================================================================
+void loop() {
+  processSerialCommands();
+
+  // Medir distancia con HC-SR04
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  distanceCm = (duration == 0) ? 999.0 : duration * 0.0343 / 2.0;
+
+  // Logica de conteo por flanco
+  if (!presenciaDetectada && distanceCm < umbralDistancia) {
+    presenciaDetectada = true;
+  } else if (presenciaDetectada && distanceCm >= umbralDistancia) {
+    if (millis() - tiempoBloqueo > BLOQUEO_MS) {
+      entryCount++;
+      tiempoBloqueo = millis();
+      Serial.print("ENTRY:");
+      Serial.println(entryCount);
+    }
+    presenciaDetectada = false;
+  }
+
+  if (millis() - lastDataSend >= DATA_INTERVAL_MS) {
+    sendData();
+    lastDataSend = millis();
+  }
+
+  updateDisplay();
+  delay(100);
+}
+
+// =====================================================================
+void processSerialCommands() {
+  while (Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\\n');
+    cmd.trim();
+
+    if (cmd == "ALARM_ON") {
+      alarmActive = true;
+    } else if (cmd == "ALARM_OFF") {
+      alarmActive = false;
+    } else if (cmd.startsWith("LIGHT_SET:")) {
+      lightIntensity = constrain(cmd.substring(10).toInt(), 0, 100);
+    } else if (cmd.startsWith("SET_THRESHOLD:")) {
+      umbralDistancia = cmd.substring(14).toFloat();
+    } else if (cmd == "READ") {
+      sendData();
+    }
+  }
+}
+
+void sendData() {
+  Serial.print("DATA:");
+  Serial.print(entryCount);
+  Serial.print(",");
+  Serial.print(distanceCm, 1);
+  Serial.print(",");
+  Serial.print(presenciaDetectada ? 1 : 0);
+  Serial.print(",");
+  Serial.println(lightIntensity);
+}
+
+void updateDisplay() {
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("=== REYPELE ===");
+
+  display.print("Dist: ");
+  if (distanceCm >= 400) {
+    display.println("---  cm");
+  } else {
+    display.print(distanceCm, 1);
+    display.println(" cm");
+  }
+
+  display.setTextSize(2);
+  display.setCursor(0, 24);
+  display.print("Ent:");
+  display.println(entryCount);
+
+  display.setTextSize(1);
+  display.setCursor(0, 48);
+  display.print(alarmActive ? "[ALM:ON]" : "[ALM:--]");
+  display.print(" L:");
+  display.print(lightIntensity);
+  display.print("%");
+
+  if (presenciaDetectada) {
+    display.setCursor(110, 0);
+    display.print("*");
+  }
+
+  display.display();
+}`;
+
+function highlight(code) {
+  const e = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let lines = code.split('\\n');
+  return lines.map(raw => {
+    let line = e(raw);
+    // comments
+    line = line.replace(/(\/\/.*)$/g, '<span class="cmt">$1</span>');
+    // preprocessor
+    line = line.replace(/^(\\s*)(#\\w+)/g, '$1<span class="pre">$2</span>');
+    // strings
+    line = line.replace(/"([^"]*)"/g, '<span class="str">"$1"</span>');
+    // numbers
+    line = line.replace(/\\b(\\d+\\.\\d+|0x[\\da-fA-F]+|\\d+)\\b/g, '<span class="num">$1</span>');
+    // keywords
+    line = line.replace(/\\b(void|int|float|bool|long|const|if|else|while|for|return|unsigned|true|false)\\b/g, '<span class="kw">$1</span>');
+    // types
+    line = line.replace(/\\b(String|Adafruit_SSD1306)\\b/g, '<span class="type">$1</span>');
+    // Arduino constants
+    line = line.replace(/\\b(HIGH|LOW|INPUT|OUTPUT|LED_BUILTIN|SSD1306_WHITE|SSD1306_SWITCHCAPVCC)\\b/g, '<span class="const-v">$1</span>');
+    // function calls
+    line = line.replace(/\\b([a-zA-Z_]\\w*)\\s*\\(/g, '<span class="fn">$1</span>(');
+    return '<span class="line">' + line + '</span>';
+  }).join('');
+}
+
+document.getElementById('codeBlock').innerHTML = highlight(RAW_CODE);
+</script>
+</body>
+</html>
