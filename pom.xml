@@ -34,6 +34,11 @@
     <build>
         <!-- Apunta a la carpeta src existente sin mover archivos -->
         <sourceDirectory>Avance/src</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>Avance/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
