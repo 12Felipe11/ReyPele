@@ -74,9 +74,7 @@ public class StadiumController {
             try { intensity = Integer.parseInt(arg); }
             catch (NumberFormatException e) { return "  Valor invalido."; }
         }
-        // intensity == 0 (apagar todo) siempre se permite, cualquier modo
-        if (intensity > 0 && !facade.getCurrentMode().canControlLight())
-            return "  No permitido en modo " + facade.getCurrentMode().getModeName();
+        // La luz global se puede ajustar en cualquier modo
         facade.setLight(intensity);
         return "  Luces (todas las zonas): " + intensity + "%";
     }

@@ -8,8 +8,9 @@ body { display: flex; overflow: hidden; }
 #content { flex: 1; overflow-y: auto; padding: 2rem; }
 
 /* ===== Brand ===== */
-.brand { padding: 1.2rem 1rem; font-size: 1.15rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #1e2740; }
-.brand-icon { font-size: 1.4rem; }
+.brand { padding: 1.2rem 1rem; font-size: 1.15rem; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 0.6rem; border-bottom: 1px solid #1e2740; }
+.brand-icon { width: 20px; height: 20px; stroke: #60a5fa; flex-shrink: 0; }
+.nav-icon { width: 15px; height: 15px; stroke: currentColor; vertical-align: middle; margin-right: 0.35rem; flex-shrink: 0; position: relative; top: -1px; }
 
 /* ===== Hardware status ===== */
 .hw-status { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 1rem; font-size: 0.75rem; border-bottom: 1px solid #1e2740; transition: all 0.3s; }
@@ -80,6 +81,14 @@ h2 { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.9rem; color: #64748b
 .zone-name { width: 110px; font-size: 0.82rem; color: #94a3b8; font-weight: 600; }
 .zone-row input[type=range] { flex: 1; accent-color: #3b82f6; height: 4px; }
 .zone-val { width: 40px; text-align: right; font-size: 0.82rem; color: #60a5fa; font-weight: 600; }
+.zone-color-picker { width: 32px; height: 26px; border: none; border-radius: 6px; cursor: pointer; background: transparent; padding: 0; flex-shrink: 0; }
+.zone-color-picker::-webkit-color-swatch-wrapper { padding: 2px; }
+.zone-color-picker::-webkit-color-swatch { border-radius: 5px; border: 2px solid #2d3f5e; }
+
+/* ===== Zone mode notice ===== */
+.zone-mode-notice { font-size: 0.75rem; color: #64748b; background: #0f1825; border: 1px solid #1e2740; border-radius: 7px; padding: 0.45rem 0.75rem; margin-bottom: 0.9rem; }
+.zone-mode-notice.zone-mode-manual { color: #22c55e; border-color: #16a34a; background: #071a0e; }
+.zone-row--disabled { opacity: 0.45; pointer-events: none; }
 
 /* ===== Alarm display ===== */
 .alarm-display { background: #151b28; border: 1px solid #1e2740; border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; margin-bottom: 1rem; transition: border-color 0.4s, background 0.4s; }
