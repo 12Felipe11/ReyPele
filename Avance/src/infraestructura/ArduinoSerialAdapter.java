@@ -136,4 +136,20 @@ public class ArduinoSerialAdapter implements IHardwareComm {
         String resp = sendCommand("SET_THRESHOLD:" + cm);
         return !resp.startsWith("ERROR");
     }
+
+    @Override
+    public boolean setZoneLight(String zone, int intensity) {
+        String resp = sendCommand("ZONE_LIGHT:" + zone.toUpperCase() + "," + clamp100(intensity));
+        return !resp.startsWith("ERROR");
+    }
+
+    @Override
+    public boolean setZoneColor(String zone, int r, int g, int b) {
+        String resp = sendCommand("ZONE_COLOR:" + zone.toUpperCase()
+                + "," + clamp255(r) + "," + clamp255(g) + "," + clamp255(b));
+        return !resp.startsWith("ERROR");
+    }
+
+    private static int clamp100(int v) { return Math.max(0, Math.min(100, v)); }
+    private static int clamp255(int v) { return Math.max(0, Math.min(255, v)); }
 }

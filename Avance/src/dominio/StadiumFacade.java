@@ -2,6 +2,7 @@ package dominio;
 
 import dominio.actuator.AlarmActuator;
 import dominio.actuator.LightingZoneActuator;
+import dominio.actuator.StadiumZone;
 import dominio.persistence.ISensorRepository;
 import dominio.sensor.DistanceSensor;
 import dominio.sensor.EntryCounterSensor;
@@ -9,13 +10,19 @@ import dominio.strategy.IStadiumModeStrategy;
 import dominio.strategy.ManualModeStrategy;
 import infraestructura.IHardwareComm;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fachada del sistema de estadio.
- * Coordina sensores HC-SR04, actuadores y modos de operacion.
+ * Coordina sensores HC-SR04, actuadores, zonas de iluminacion y modos.
  */
 public class StadiumFacade {
+
+    private static final String[] ZONE_NAMES = {"NORTE", "SUR", "ORIENTAL", "OCCIDENTAL", "CANCHA"};
 
     private final IHardwareComm hardware;
     private final ISensorRepository repository;
@@ -24,6 +31,7 @@ public class StadiumFacade {
     private final LightingZoneActuator lightingActuator;
     private final AlarmActuator alarmActuator;
     private final StadiumConfig config;
+    private final Map<String, StadiumZone> zones;
     private IStadiumModeStrategy currentMode;
     private int lastEntryCount = -1;
 
@@ -40,6 +48,13 @@ public class StadiumFacade {
         this.alarmActuator = new AlarmActuator("ALARM-01", "General");
         this.config = new StadiumConfig();
         this.currentMode = new ManualModeStrategy();
+
+        this.zones = new LinkedHashMap<>();
+        zones.put("NORTE",      new StadiumZone("LUZ-N", "Norte"));
+        zones.put("SUR",        new StadiumZone("LUZ-S", "Sur"));
+        zones.put("ORIENTAL",   new StadiumZone("LUZ-E", "Oriental"));
+        zones.put("OCCIDENTAL", new StadiumZone("LUZ-O", "Occidental"));
+        zones.put("CANCHA",     new StadiumZone("LUZ-C", "Cancha"));
     }
 
     /** HU-01: Lee sensores del Arduino y actualiza dominio. */
@@ -77,21 +92,60 @@ public class StadiumFacade {
         if (ok) {
             alarmActuator.setActive(on);
             repository.saveEvent("ALARM", "{\"on\":" + on + "}");
-            if (on) {
-                repository.recordDailyAlarm();
-            }
+            if (on) repository.recordDailyAlarm();
         }
         return ok;
     }
 
+    /** Controla todas las zonas al mismo tiempo (luz global). */
     public synchronized boolean setLight(int intensity) {
         boolean ok = hardware.setLight(intensity);
         if (ok) {
             lightingActuator.setIntensity(intensity);
             lightingActuator.setActive(intensity > 0);
+            for (StadiumZone z : zones.values()) {
+                z.setIntensity(intensity);
+                z.setActive(intensity > 0);
+            }
             repository.saveEvent("LIGHT", "{\"intensity\":" + intensity + "}");
         }
         return ok;
+    }
+
+    /** Controla la intensidad de una zona especifica. */
+    public synchronized boolean setZoneLight(String zoneName, int intensity) {
+        String key = zoneName.toUpperCase();
+        StadiumZone zone = zones.get(key);
+        if (zone == null) return false;
+        hardware.setZoneLight(key, intensity);   // best-effort al hardware
+        zone.setIntensity(intensity);
+        zone.setActive(intensity > 0);
+        repository.saveEvent("ZONE_LIGHT",
+                "{\"zone\":\"" + key + "\",\"intensity\":" + intensity + "}");
+        return true;
+    }
+
+    /** Controla el color RGB de una zona. */
+    public synchronized boolean setZoneColor(String zoneName, int r, int g, int b) {
+        String key = zoneName.toUpperCase();
+        StadiumZone zone = zones.get(key);
+        if (zone == null) return false;
+        hardware.setZoneColor(key, r, g, b);    // best-effort al hardware
+        zone.setColor(r, g, b);
+        return true;
+    }
+
+    /** Aplica intensidad a todas las zonas. */
+    public synchronized void setAllZones(int intensity) {
+        for (String key : new ArrayList<>(zones.keySet())) setZoneLight(key, intensity);
+        lightingActuator.setIntensity(intensity);
+        lightingActuator.setActive(intensity > 0);
+        hardware.setLight(intensity);
+    }
+
+    /** Aplica color RGB a todas las zonas. */
+    public synchronized void setAllZonesColor(int r, int g, int b) {
+        for (String key : new ArrayList<>(zones.keySet())) setZoneColor(key, r, g, b);
     }
 
     public synchronized void setOccupancyThreshold(int val) {
@@ -125,4 +179,5 @@ public class StadiumFacade {
     public StadiumConfig         getConfig()            { return config; }
     public IStadiumModeStrategy  getCurrentMode()       { return currentMode; }
     public IHardwareComm         getHardware()          { return hardware; }
+    public Map<String, StadiumZone> getZones()          { return Collections.unmodifiableMap(zones); }
 }

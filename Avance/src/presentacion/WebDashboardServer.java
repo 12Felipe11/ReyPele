@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dominio.SensorData;
 import dominio.StadiumFacade;
+import dominio.actuator.StadiumZone;
 
 import java.awt.Desktop;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
@@ -156,6 +158,19 @@ public class WebDashboardServer {
         for (int i = 0; i < actions.size(); i++) {
             if (i > 0) sb.append(',');
             sb.append('"').append(escape(actions.get(i))).append('"');
+        }
+        sb.append("],");
+        // Zonas de iluminacion
+        sb.append("\"zones\":[");
+        boolean firstZone = true;
+        for (Map.Entry<String, StadiumZone> e : facade.getZones().entrySet()) {
+            if (!firstZone) sb.append(',');
+            firstZone = false;
+            StadiumZone z = e.getValue();
+            sb.append("{\"name\":\"").append(e.getKey()).append("\",");
+            sb.append("\"intensity\":").append(z.getIntensity()).append(",");
+            sb.append("\"color\":\"").append(z.getColorHex()).append("\",");
+            sb.append("\"active\":").append(z.isActive()).append("}");
         }
         sb.append("]}");
         return sb.toString();
