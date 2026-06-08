@@ -82,6 +82,16 @@ public class Main {
             System.err.println("  [WEB] No se pudo iniciar el dashboard: " + e.getMessage());
         }
 
+        // Cierra la sesion y la BD aunque el proceso sea terminado externamente (Ctrl+C, etc.)
+        final IHardwareComm hw = hardware;
+        final WebDashboardServer webRef = web;
+        final ISensorRepository repo = repository;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            webRef.stop();
+            hw.disconnect();
+            repo.close();
+        }, "shutdown-hook"));
+
         ConsoleUI ui = new ConsoleUI(controller, scanner);
         ui.run();
 
