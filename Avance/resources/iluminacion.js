@@ -68,10 +68,16 @@ function onZoneSlider(zone, val) {
 }
 
 function apagaTodo() {
+  // Switch to MANUAL first so no mode can re-enable the lights automatically
+  sendCmd('MODE MANUAL');
   sendCmd('LIGHT 0');
   // Optimistic UI update so the user sees instant feedback
   var gs = document.getElementById('globalSlider');
   if (gs) { gs.value = 0; document.getElementById('globalVal').textContent = '0%'; }
   document.querySelectorAll('[id^="zs-"]').forEach(function(sl) { sl.value = 0; });
   document.querySelectorAll('[id^="zv-"]').forEach(function(sp) { sp.textContent = '0%'; });
+  // Update mode buttons to reflect MANUAL
+  document.querySelectorAll('.mode-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.mode === 'MANUAL');
+  });
 }
