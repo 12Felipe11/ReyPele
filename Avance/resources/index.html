@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReyPele Stadium</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="brand">
+    <span class="brand-icon">🏟</span>
+    <span>ReyPele</span>
+  </div>
+  <div id="hwStatus" class="hw-status disconnected">
+    <span class="hw-dot"></span>
+    <span class="hw-label">Sin conexión</span>
+  </div>
+
+  <div class="nav-section">MONITOREO</div>
+  <a class="nav-item active" onclick="showView('dashboard',this)">📊 Dashboard</a>
+
+  <div class="nav-section">CONTROL</div>
+  <a class="nav-item" onclick="showView('iluminacion',this)">💡 Iluminación</a>
+  <a class="nav-item" onclick="showView('alarmas',this)">🔔 Alarmas</a>
+
+  <div class="nav-section">DATOS</div>
+  <a class="nav-item" onclick="showView('analiticas',this)">📈 Analíticas</a>
+  <a class="nav-item" onclick="showView('auditoria',this)">📋 Auditoría</a>
+
+  <div class="nav-section">SISTEMA</div>
+  <a class="nav-item" onclick="showView('configuracion',this)">⚙ Configuración</a>
+</nav>
+
+<main id="content">
+
+  <!-- ===== DASHBOARD ===== -->
+  <section id="view-dashboard" class="view active">
+    <h1>Dashboard</h1>
+    <div class="kpi-grid" id="dashKpis"></div>
+    <div class="events-panel">
+      <h2>Eventos en vivo</h2>
+      <ul id="liveEvents">
+        <li><span style="color:#64748b">Esperando datos...</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== ILUMINACIÓN ===== -->
+  <section id="view-iluminacion" class="view">
+    <h1>Iluminación</h1>
+    <div class="section-block">
+      <h2>Modo de operación</h2>
+      <div class="mode-row" id="modeBtns">
+        <button class="mode-btn" data-mode="MANUAL"        onclick="sendCmd('MODE MANUAL')">Manual</button>
+        <button class="mode-btn" data-mode="AUTO"          onclick="sendCmd('MODE AUTO')">Automático</button>
+        <button class="mode-btn mode-em" data-mode="EMERGENCY" onclick="sendCmd('MODE EMERGENCY')">Emergencia</button>
+        <button class="mode-btn" data-mode="PARTIDO"       onclick="sendCmd('MODE PARTIDO')">Partido</button>
+        <button class="mode-btn" data-mode="ENTRENAMIENTO" onclick="sendCmd('MODE ENTRENAMIENTO')">Entrenamiento</button>
+        <button class="mode-btn" data-mode="EVENTO"        onclick="sendCmd('MODE EVENTO')">Evento</button>
+        <button class="mode-btn" data-mode="SHOW"          onclick="sendCmd('SHOW')">Show</button>
+      </div>
+    </div>
+    <div class="section-block">
+      <h2>Luz global</h2>
+      <div class="light-global-row">
+        <div class="slider-row">
+          <input type="range" min="0" max="100" value="50" id="globalSlider" oninput="onGlobalSlider(this.value)">
+          <span id="globalVal">50%</span>
+        </div>
+        <button class="apagar-btn" onclick="apagaTodo()">⬛ Apagar todo</button>
+      </div>
+    </div>
+    <div class="section-block">
+      <h2>Control por zona</h2>
+      <div id="zoneSliders"><span class="no-data">Cargando zonas...</span></div>
+    </div>
+  </section>
+
+  <!-- ===== ALARMAS ===== -->
+  <section id="view-alarmas" class="view">
+    <h1>Alarmas</h1>
+    <div class="alarm-display" id="alarmDisplay">
+      <div class="alarm-big" id="alarmBig">OFF</div>
+      <div class="alarm-desc" id="alarmDesc">Sistema normal</div>
+      <button class="alarm-toggle inactiva" id="alarmToggle" onclick="toggleAlarm()">🔔 Activar alarma</button>
+    </div>
+    <div class="section-block">
+      <h2>Historial de alarmas</h2>
+      <table class="data-table">
+        <thead><tr><th>Hora</th><th>Acción</th><th>Descripción</th></tr></thead>
+        <tbody id="alarmBody">
+          <tr><td colspan="3" class="no-data-cell">Sin datos de auditoría</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== ANALÍTICAS ===== -->
+  <section id="view-analiticas" class="view">
+    <h1>Analíticas</h1>
+    <div class="kpi-grid" id="anaKpis"></div>
+    <div class="two-col">
+      <div class="section-block">
+        <h2>Flujo de personas</h2>
+        <div id="flowStats"><span class="no-data">Cargando...</span></div>
+      </div>
+      <div class="section-block">
+        <h2>Predicción de aforo</h2>
+        <div id="prediction"><span class="no-data">Calculando...</span></div>
+      </div>
+    </div>
+    <div class="section-block">
+      <h2>Distribución de modos</h2>
+      <div id="modeChart"><span class="no-data">Sin datos</span></div>
+    </div>
+    <!-- HISTORICAL DATA SECTION -->
+    <div class="section-block">
+      <h2>Datos históricos</h2>
+      <div class="hist-controls">
+        <div class="hist-type-row">
+          <button class="hist-type-btn active" data-htype="occupancy" onclick="changeHistType('occupancy',this)">👥 Ocupación</button>
+          <button class="hist-type-btn" data-htype="alarms" onclick="changeHistType('alarms',this)">🔔 Alarmas</button>
+        </div>
+        <div class="hist-period-row">
+          <button class="hist-period-btn" data-period="hour" onclick="changeHistPeriod('hour',this)">Hora</button>
+          <button class="hist-period-btn active" data-period="day" onclick="changeHistPeriod('day',this)">Día</button>
+          <button class="hist-period-btn" data-period="week" onclick="changeHistPeriod('week',this)">Semana</button>
+          <button class="hist-period-btn" data-period="month" onclick="changeHistPeriod('month',this)">Mes</button>
+        </div>
+      </div>
+      <div id="histChart"><span class="no-data">Seleccione tipo y período</span></div>
+      <div id="histSummary" class="hist-summary"></div>
+    </div>
+  </section>
+
+  <!-- ===== AUDITORÍA ===== -->
+  <section id="view-auditoria" class="view">
+    <h1>Auditoría</h1>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="todos"   onclick="setAuditFilter('todos',this)">Todos</button>
+      <button class="filter-btn"        data-filter="ALARM"   onclick="setAuditFilter('ALARM',this)">Alarmas</button>
+      <button class="filter-btn"        data-filter="MODE"    onclick="setAuditFilter('MODE',this)">Modos</button>
+      <button class="filter-btn"        data-filter="LIGHT"   onclick="setAuditFilter('LIGHT',this)">Iluminación</button>
+      <button class="filter-btn"        data-filter="SESSION" onclick="setAuditFilter('SESSION',this)">Sesiones</button>
+      <button class="filter-btn"        data-filter="CONFIG"  onclick="setAuditFilter('CONFIG',this)">Config</button>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Hora</th><th>Acción</th><th>Descripción</th></tr></thead>
+      <tbody id="auditBody">
+        <tr><td colspan="3" class="no-data-cell">Sin registros</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== CONFIGURACIÓN ===== -->
+  <section id="view-configuracion" class="view">
+    <h1>Configuración</h1>
+    <div class="config-form">
+      <div class="cfg-group">
+        <label for="cfgDist">Umbral de distancia (cm)</label>
+        <input type="number" id="cfgDist" min="5" max="400" value="30">
+      </div>
+      <div class="cfg-group">
+        <label for="cfgCap">Capacidad máxima (personas)</label>
+        <input type="number" id="cfgCap" min="1" max="100000" value="1000">
+      </div>
+      <div class="cfg-group">
+        <label for="cfgMode">Modo de operación</label>
+        <select id="cfgMode">
+          <option value="MANUAL">Manual</option>
+          <option value="AUTO">Automático</option>
+          <option value="EMERGENCY">Emergencia</option>
+          <option value="PARTIDO">Partido</option>
+          <option value="ENTRENAMIENTO">Entrenamiento</option>
+          <option value="EVENTO">Evento</option>
+          <option value="SHOW">Show</option>
+        </select>
+      </div>
+      <button class="save-btn" onclick="saveConfig()">💾 Guardar configuración</button>
+      <div id="cfgMsg" class="cfg-msg"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- scripts cargados en orden de dependencia -->
+<script src="/app.js"></script>
+<script src="/dashboard.js"></script>
+<script src="/iluminacion.js"></script>
+<script src="/alarmas.js"></script>
+<script src="/analytics.js"></script>
+<script src="/audit.js"></script>
+<script src="/config.js"></script>
+</body>
+</html>

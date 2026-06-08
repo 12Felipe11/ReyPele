@@ -40,4 +40,39 @@ public interface ISensorRepository {
 
     /** Libera los recursos de conexion. */
     void close();
+
+    // ---- Auditoría y analítica (default → NoOpSensorRepository sin cambios) ----
+
+    /** Registra cualquier acción importante en audit_log. */
+    default void logAudit(String action, String description) {}
+
+    /** Registra un cambio de modo en mode_history. */
+    default void recordModeHistory(String mode) {}
+
+    /** Abre un nuevo registro en alarm_history con la razón indicada. */
+    default void openAlarmHistory(String reason) {}
+
+    /** Cierra el último alarm_history abierto y calcula la duración. */
+    default void closeAlarmHistory() {}
+
+    /** Registra una detección individual (HC-SR04) en la tabla entries. */
+    default void recordIndividualEntry(double distanceCm) {}
+
+    /** Registra un cambio de iluminación en light_history. */
+    default void recordLightHistory(int intensity, String zone) {}
+
+    /**
+     * Devuelve un JSON con analítica completa para el dashboard.
+     * @param currentCount  aforo actual del sensor
+     * @param maxCapacity   umbral de ocupación configurado
+     */
+    default String getDashboardAnalytics(int currentCount, int maxCapacity) { return "{}"; }
+
+    /**
+     * Devuelve JSON con datos históricos de ocupación o alarmas,
+     * agrupados por el período indicado (hour|day|week|month).
+     */
+    default String getHistory(String type, String period) {
+        return "{\"labels\":[],\"values\":[]}";
+    }
 }

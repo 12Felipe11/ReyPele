@@ -10,6 +10,7 @@ import dominio.actuator.StadiumZone;
 
 import java.awt.Desktop;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -38,9 +39,20 @@ public class WebDashboardServer {
 
     public void start() throws IOException {
         server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/",           new IndexHandler());
-        server.createContext("/api/status", new StatusHandler());
-        server.createContext("/api/command", new CommandHandler());
+        final String JS = "application/javascript; charset=utf-8";
+        server.createContext("/",               new IndexHandler());
+        server.createContext("/style.css",      new StaticFileHandler("/style.css",      "text/css; charset=utf-8"));
+        server.createContext("/app.js",         new StaticFileHandler("/app.js",         JS));
+        server.createContext("/dashboard.js",   new StaticFileHandler("/dashboard.js",   JS));
+        server.createContext("/iluminacion.js", new StaticFileHandler("/iluminacion.js", JS));
+        server.createContext("/alarmas.js",     new StaticFileHandler("/alarmas.js",     JS));
+        server.createContext("/analytics.js",   new StaticFileHandler("/analytics.js",   JS));
+        server.createContext("/audit.js",       new StaticFileHandler("/audit.js",       JS));
+        server.createContext("/config.js",      new StaticFileHandler("/config.js",      JS));
+        server.createContext("/api/status",     new StatusHandler());
+        server.createContext("/api/analytics",  new AnalyticsHandler());
+        server.createContext("/api/history",    new HistoryHandler());
+        server.createContext("/api/command",    new CommandHandler());
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
 
@@ -79,12 +91,35 @@ public class WebDashboardServer {
 
     private class IndexHandler implements HttpHandler {
         @Override public void handle(HttpExchange ex) throws IOException {
-            if (!"/".equals(ex.getRequestURI().getPath())) {
+            String path = ex.getRequestURI().getPath();
+            if (!"/".equals(path) && !"/index.html".equals(path)) {
                 ex.sendResponseHeaders(404, -1);
                 return;
             }
-            byte[] body = DashboardHtml.PAGE.getBytes(StandardCharsets.UTF_8);
-            ex.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
+            serveClasspathResource(ex, "/index.html", "text/html; charset=utf-8");
+        }
+    }
+
+    private class StaticFileHandler implements HttpHandler {
+        private final String resource;
+        private final String contentType;
+        StaticFileHandler(String resource, String contentType) {
+            this.resource = resource;
+            this.contentType = contentType;
+        }
+        @Override public void handle(HttpExchange ex) throws IOException {
+            serveClasspathResource(ex, resource, contentType);
+        }
+    }
+
+    private void serveClasspathResource(HttpExchange ex, String path, String contentType) throws IOException {
+        try (InputStream is = getClass().getResourceAsStream(path)) {
+            if (is == null) {
+                ex.sendResponseHeaders(404, -1);
+                return;
+            }
+            byte[] body = is.readAllBytes();
+            ex.getResponseHeaders().add("Content-Type", contentType);
             ex.sendResponseHeaders(200, body.length);
             try (OutputStream os = ex.getResponseBody()) { os.write(body); }
         }
@@ -100,6 +135,40 @@ public class WebDashboardServer {
             } catch (Exception e) {
                 json = "{\"error\":\"" + escape(e.getMessage()) + "\"}";
             }
+            byte[] body = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+            ex.getResponseHeaders().add("Cache-Control", "no-store");
+            ex.sendResponseHeaders(200, body.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(body); }
+        }
+    }
+
+    private class AnalyticsHandler implements HttpHandler {
+        @Override public void handle(HttpExchange ex) throws IOException {
+            String json = facade.getDashboardAnalytics();
+            byte[] body = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+            ex.getResponseHeaders().add("Cache-Control", "no-store");
+            ex.sendResponseHeaders(200, body.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(body); }
+        }
+    }
+
+    private class HistoryHandler implements HttpHandler {
+        @Override public void handle(HttpExchange ex) throws IOException {
+            String query  = ex.getRequestURI().getQuery();
+            String type   = "occupancy";
+            String period = "day";
+            if (query != null) {
+                for (String p : query.split("&")) {
+                    String[] kv = p.split("=", 2);
+                    if (kv.length == 2) {
+                        if ("type".equals(kv[0]))   type   = kv[1];
+                        if ("period".equals(kv[0])) period = kv[1];
+                    }
+                }
+            }
+            String json = facade.getHistory(type, period);
             byte[] body = json.getBytes(StandardCharsets.UTF_8);
             ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
             ex.getResponseHeaders().add("Cache-Control", "no-store");

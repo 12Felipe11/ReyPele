@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn package *)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"MAVEN_HOME\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"M2_HOME\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"M2_HOME\", \"User\"\\); [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\))",
+      "Bash(\"/c/Users/andre/.vscode/extensions/oracle.oracle-java-26.0.0/nbcode/java/maven/bin/mvn.cmd\" package *)",
+      "Bash(echo \"BUILD_EXIT:$?\")"
+    ]
+  }
+}

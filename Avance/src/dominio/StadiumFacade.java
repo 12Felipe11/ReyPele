@@ -79,6 +79,7 @@ public class StadiumFacade {
         if (newEntry) {
             repository.saveReading(data);
             repository.recordDailyEntry(count);
+            repository.recordIndividualEntry(data.getDistanceCm());
         }
         return data;
     }
@@ -92,7 +93,21 @@ public class StadiumFacade {
         if (ok) {
             alarmActuator.setActive(on);
             repository.saveEvent("ALARM", "{\"on\":" + on + "}");
-            if (on) repository.recordDailyAlarm();
+            if (on) {
+                int count     = entrySensor.getCount();
+                int threshold = config.getOccupancyThreshold();
+                String reason = currentMode.getModeName().equals("EMERGENCIA")
+                    ? "Modo emergencia activado"
+                    : count > threshold
+                        ? "Aforo máximo: " + count + "/" + threshold + " personas"
+                        : "Activación manual";
+                repository.recordDailyAlarm();
+                repository.openAlarmHistory(reason);
+                repository.logAudit("ALARM_ON", reason);
+            } else {
+                repository.closeAlarmHistory();
+                repository.logAudit("ALARM_OFF", "Alarma desactivada");
+            }
         }
         return ok;
     }
@@ -108,6 +123,8 @@ public class StadiumFacade {
                 z.setActive(intensity > 0);
             }
             repository.saveEvent("LIGHT", "{\"intensity\":" + intensity + "}");
+            repository.logAudit("LIGHT_CHANGE", "Global → " + intensity + "%");
+            repository.recordLightHistory(intensity, "ALL");
         }
         return ok;
     }
@@ -117,11 +134,12 @@ public class StadiumFacade {
         String key = zoneName.toUpperCase();
         StadiumZone zone = zones.get(key);
         if (zone == null) return false;
-        hardware.setZoneLight(key, intensity);   // best-effort al hardware
+        hardware.setZoneLight(key, intensity);
         zone.setIntensity(intensity);
         zone.setActive(intensity > 0);
         repository.saveEvent("ZONE_LIGHT",
                 "{\"zone\":\"" + key + "\",\"intensity\":" + intensity + "}");
+        repository.recordLightHistory(intensity, key);
         return true;
     }
 
@@ -154,22 +172,42 @@ public class StadiumFacade {
         if (config.getOccupancyThreshold() != before) {
             repository.updateConfig(config.getOccupancyThreshold(), config.getDistanceThreshold());
             repository.saveConfigHistory(config.getOccupancyThreshold(), config.getDistanceThreshold());
+            repository.logAudit("CONFIG_CHANGE",
+                "Umbral ocupación: " + before + " → " + config.getOccupancyThreshold() + " personas");
         }
     }
 
     public synchronized boolean setDistanceThreshold(float cm) {
+        float before = config.getDistanceThreshold();
         boolean ok = hardware.setThreshold(cm);
         if (ok) {
             config.setDistanceThreshold(cm);
             repository.updateConfig(config.getOccupancyThreshold(), config.getDistanceThreshold());
             repository.saveConfigHistory(config.getOccupancyThreshold(), config.getDistanceThreshold());
+            repository.logAudit("CONFIG_CHANGE",
+                "Umbral distancia: " + before + " → " + cm + " cm");
         }
         return ok;
     }
 
     public synchronized void changeMode(IStadiumModeStrategy newMode) {
+        String prevName = this.currentMode.getModeName();
+        String newName  = newMode.getModeName();
         this.currentMode = newMode;
-        repository.saveEvent("MODE", "{\"name\":\"" + newMode.getModeName() + "\"}");
+        repository.saveEvent("MODE", "{\"name\":\"" + newName + "\"}");
+        repository.recordModeHistory(newName);
+        repository.logAudit("MODE_CHANGE", prevName + " → " + newName);
+    }
+
+    /** Devuelve JSON de analítica para el dashboard web. */
+    public String getDashboardAnalytics() {
+        return repository.getDashboardAnalytics(
+            entrySensor.getCount(), config.getOccupancyThreshold());
+    }
+
+    /** Devuelve JSON histórico agrupado por tipo y período. */
+    public String getHistory(String type, String period) {
+        return repository.getHistory(type, period);
     }
 
     public EntryCounterSensor    getEntrySensor()      { return entrySensor; }

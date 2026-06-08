@@ -66,8 +66,6 @@ public class StadiumController {
     private String handleLight(String[] parts) {
         if (parts.length < 2)
             return "  Uso: LIGHT <0-100> | LIGHT ON | LIGHT OFF";
-        if (!facade.getCurrentMode().canControlLight())
-            return "  No permitido en modo " + facade.getCurrentMode().getModeName();
         String arg = parts[1].toUpperCase();
         int intensity;
         if ("ON".equals(arg))       intensity = 100;
@@ -76,6 +74,9 @@ public class StadiumController {
             try { intensity = Integer.parseInt(arg); }
             catch (NumberFormatException e) { return "  Valor invalido."; }
         }
+        // intensity == 0 (apagar todo) siempre se permite, cualquier modo
+        if (intensity > 0 && !facade.getCurrentMode().canControlLight())
+            return "  No permitido en modo " + facade.getCurrentMode().getModeName();
         facade.setLight(intensity);
         return "  Luces (todas las zonas): " + intensity + "%";
     }
