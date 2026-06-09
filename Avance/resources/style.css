@@ -33,6 +33,9 @@ body { display: flex; overflow: hidden; }
 h1 { font-size: 1.55rem; font-weight: 700; margin-bottom: 1.5rem; color: #f1f5f9; }
 h2 { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
 
+/* ===== Section label (Hoy / Histórico) ===== */
+.section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; color: #475569; text-transform: uppercase; margin-bottom: 0.5rem; margin-top: 0.2rem; }
+
 /* ===== KPI Grid ===== */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 0.9rem; margin-bottom: 1.2rem; }
 .kpi-card { background: #151b28; border: 1px solid #1e2740; border-radius: 12px; padding: 1.1rem 1.2rem; transition: border-color 0.3s; }
@@ -125,6 +128,14 @@ h2 { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.9rem; color: #64748b
 .filter-btn { padding: 0.38rem 0.9rem; border: 1px solid #1e2740; border-radius: 6px; background: #1a2235; color: #94a3b8; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
 .filter-btn:hover { background: #1e2e4a; color: #cbd5e1; }
 .filter-btn.active { background: #1b3460; color: #60a5fa; border-color: #3b82f6; }
+
+/* ===== Audit view ===== */
+.audit-ts   { white-space: nowrap; color: #475569; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.audit-desc { color: #cbd5e1; }
+.audit-footer { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.2rem; margin-top: 0.3rem; flex-wrap: wrap; gap: 0.5rem; }
+.audit-count { font-size: 0.75rem; color: #475569; }
+.load-more-btn { padding: 0.38rem 1.1rem; border: 1px solid #2d3f5e; border-radius: 6px; background: #151b28; color: #60a5fa; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+.load-more-btn:hover { background: #1b3460; border-color: #3b82f6; }
 
 /* ===== Analytics ===== */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }

@@ -101,7 +101,10 @@
   <!-- ===== ANALÍTICAS ===== -->
   <section id="view-analiticas" class="view">
     <h1>Analíticas</h1>
+    <div class="section-label">Hoy</div>
     <div class="kpi-grid" id="anaKpis"></div>
+    <div class="section-label">Histórico</div>
+    <div class="kpi-grid" id="anaKpisGlobal"></div>
     <div class="two-col">
       <div class="section-block">
         <h2>Flujo de personas</h2>
@@ -148,11 +151,12 @@
       <button class="filter-btn"        data-filter="CONFIG"  onclick="setAuditFilter('CONFIG',this)">Config</button>
     </div>
     <table class="data-table">
-      <thead><tr><th>Hora</th><th>Acción</th><th>Descripción</th></tr></thead>
+      <thead><tr><th>Fecha / Hora</th><th>Acción</th><th>Descripción</th></tr></thead>
       <tbody id="auditBody">
         <tr><td colspan="3" class="no-data-cell">Sin registros</td></tr>
       </tbody>
     </table>
+    <div id="auditFooter" class="audit-footer"></div>
   </section>
 
   <!-- ===== CONFIGURACIÓN ===== -->

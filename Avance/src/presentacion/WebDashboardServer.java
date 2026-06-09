@@ -52,6 +52,8 @@ public class WebDashboardServer {
         server.createContext("/api/status",     new StatusHandler());
         server.createContext("/api/analytics",  new AnalyticsHandler());
         server.createContext("/api/history",    new HistoryHandler());
+        server.createContext("/api/audit",      new AuditHandler());
+        server.createContext("/api/debug",      new DebugHandler());
         server.createContext("/api/command",    new CommandHandler());
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
@@ -169,6 +171,44 @@ public class WebDashboardServer {
                 }
             }
             String json = facade.getHistory(type, period);
+            byte[] body = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+            ex.getResponseHeaders().add("Cache-Control", "no-store");
+            ex.sendResponseHeaders(200, body.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(body); }
+        }
+    }
+
+    private class DebugHandler implements HttpHandler {
+        @Override public void handle(HttpExchange ex) throws IOException {
+            String json = facade.getDebugInfo();
+            byte[] body = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
+            ex.getResponseHeaders().add("Cache-Control", "no-store");
+            ex.sendResponseHeaders(200, body.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(body); }
+        }
+    }
+
+    private class AuditHandler implements HttpHandler {
+        @Override public void handle(HttpExchange ex) throws IOException {
+            String query  = ex.getRequestURI().getQuery();
+            String filter = "";
+            int    limit  = 500;
+            int    offset = 0;
+            if (query != null) {
+                for (String p : query.split("&")) {
+                    String[] kv = p.split("=", 2);
+                    if (kv.length == 2) {
+                        switch (kv[0]) {
+                            case "filter": filter = kv[1]; break;
+                            case "limit":  try { limit  = Integer.parseInt(kv[1]); } catch (NumberFormatException ignored) {} break;
+                            case "offset": try { offset = Integer.parseInt(kv[1]); } catch (NumberFormatException ignored) {} break;
+                        }
+                    }
+                }
+            }
+            String json = facade.getAuditLog(filter, limit, offset);
             byte[] body = json.getBytes(StandardCharsets.UTF_8);
             ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
             ex.getResponseHeaders().add("Cache-Control", "no-store");

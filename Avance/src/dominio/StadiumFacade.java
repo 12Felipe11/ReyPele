@@ -210,6 +210,16 @@ public class StadiumFacade {
         return repository.getHistory(type, period);
     }
 
+    /** Devuelve JSON con el historial completo de auditoría (paginado). */
+    public String getAuditLog(String filter, int limit, int offset) {
+        return repository.getAuditLog(filter, limit, offset);
+    }
+
+    /** Diagnóstico: conteos de cada tabla para verificar datos. */
+    public String getDebugInfo() {
+        return repository.getDebugInfo();
+    }
+
     public EntryCounterSensor    getEntrySensor()      { return entrySensor; }
     public DistanceSensor        getDistanceSensor()    { return distanceSensor; }
     public LightingZoneActuator  getLightingActuator()  { return lightingActuator; }

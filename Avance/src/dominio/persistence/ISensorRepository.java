@@ -60,4 +60,16 @@ public interface ISensorRepository {
     default String getHistory(String type, String period) {
         return "{\"labels\":[],\"values\":[]}";
     }
+
+    /**
+     * Devuelve JSON con el historial completo de audit_log.
+     * @param filter  acción a filtrar (ej. "ALARM", "MODE") — null o vacío = todos
+     * @param limit   máximo de registros a devolver
+     * @param offset  desplazamiento para paginación
+     */
+    default String getAuditLog(String filter, int limit, int offset) {
+        return "{\"total\":0,\"records\":[]}";
+    }
+
+    default String getDebugInfo() { return "{}"; }
 }

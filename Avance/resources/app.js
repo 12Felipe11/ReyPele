@@ -106,5 +106,9 @@ function sendCmd(cmd) {
 // ================================================================= INIT
 setInterval(fetchStatus,    1000);
 setInterval(fetchAnalytics, 5000);
+// Refresca gráficas históricas cada 2 min (cubre cambio de período en segundo plano)
+setInterval(function() { if (typeof fetchAndRenderHistory === 'function') fetchAndRenderHistory(); }, 120000);
 fetchStatus();
 fetchAnalytics();
+// Carga inicial de datos históricos sin esperar a que el usuario navegue a Analíticas
+setTimeout(function() { if (typeof fetchAndRenderHistory === 'function') fetchAndRenderHistory(); }, 1500);

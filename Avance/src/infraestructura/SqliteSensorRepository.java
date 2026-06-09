@@ -37,13 +37,20 @@ public class SqliteSensorRepository implements ISensorRepository {
     private static final DateTimeFormatter D_FMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final Connection conn;
+    private String dbAbsPath = "desconocido";
     private long currentSessionId = -1;
     private long currentAlarmId   = -1;
 
     public SqliteSensorRepository(String dbPath) {
         try {
+            this.dbAbsPath = new java.io.File(dbPath).getAbsolutePath();
             Class.forName("org.sqlite.JDBC");
             this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+            // Espera hasta 3 s si otro proceso (ej. DB Browser) tiene el archivo bloqueado
+            try (Statement st = conn.createStatement()) {
+                st.execute("PRAGMA busy_timeout = 3000");
+                st.execute("PRAGMA journal_mode = WAL");  // permite lecturas concurrentes
+            }
             initSchema();
         } catch (ClassNotFoundException | SQLException e) {
             throw new IllegalStateException("No se pudo abrir SQLite en " + dbPath, e);
@@ -141,7 +148,7 @@ public class SqliteSensorRepository implements ISensorRepository {
 
     private int queryInt(String sql, String param) {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, param);
+            if (param != null) ps.setString(1, param);
             ResultSet rs = ps.executeQuery();
             return rs.next() ? rs.getInt(1) : 0;
         } catch (SQLException ignored) { return 0; }
@@ -294,6 +301,26 @@ public class SqliteSensorRepository implements ISensorRepository {
         closeSession();
         try { if (conn != null && !conn.isClosed()) conn.close(); }
         catch (SQLException ignored) {}
+    }
+
+    // ============================================================= DEBUG INFO
+
+    @Override
+    public String getDebugInfo() {
+        String[] tables = {
+            "daily_occupancy", "entries", "alarm_history",
+            "mode_history", "audit_log", "light_history",
+            "sessions", "sensor_readings", "events"
+        };
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"dbPath\":\"").append(esc(dbAbsPath)).append("\",\"tables\":{");
+        for (int i = 0; i < tables.length; i++) {
+            if (i > 0) sb.append(',');
+            int count = queryInt("SELECT COUNT(*) FROM " + tables[i], null);
+            sb.append('"').append(tables[i]).append("\":").append(count);
+        }
+        sb.append("},\"today\":\"").append(today()).append("\"}");
+        return sb.toString();
     }
 
     // ============================================================= AUDIT & ANALYTICS
@@ -527,9 +554,96 @@ public class SqliteSensorRepository implements ISensorRepository {
         sb.append("\"lightStats\":{");
         sb.append("\"avgIntensity\":").append(avgIntensity).append(',');
         sb.append("\"maxIntensity\":").append(maxIntensity);
+        sb.append("},");
+
+        // --- global stats (semana / mes / todo el tiempo) ---
+        String sevenDaysAgo  = LocalDate.now().minusDays(6).format(D_FMT);
+        String thirtyDaysAgo = LocalDate.now().minusDays(29).format(D_FMT);
+
+        int weekEntries  = queryInt(
+            "SELECT COALESCE(SUM(total_entries),0) FROM daily_occupancy WHERE date >= ?", sevenDaysAgo);
+        int monthEntries = queryInt(
+            "SELECT COALESCE(SUM(total_entries),0) FROM daily_occupancy WHERE date >= ?", thirtyDaysAgo);
+        int totalEntries = queryInt(
+            "SELECT COALESCE(SUM(total_entries),0) FROM daily_occupancy", null);
+        int totalAlarmsSessions = queryInt(
+            "SELECT COUNT(*) FROM alarm_history", null);
+        int totalSessions = queryInt(
+            "SELECT COUNT(*) FROM sessions", null);
+
+        // Día con más entradas de toda la historia
+        String peakDay       = "--";
+        int    peakDayVal    = 0;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT date, total_entries FROM daily_occupancy ORDER BY total_entries DESC LIMIT 1")) {
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                peakDay    = rs.getString("date");
+                peakDayVal = rs.getInt("total_entries");
+            }
+        } catch (SQLException ignored) {}
+
+        sb.append("\"globalStats\":{");
+        sb.append("\"weekEntries\":").append(weekEntries).append(',');
+        sb.append("\"monthEntries\":").append(monthEntries).append(',');
+        sb.append("\"totalEntries\":").append(totalEntries).append(',');
+        sb.append("\"totalAlarms\":").append(totalAlarmsSessions).append(',');
+        sb.append("\"totalSessions\":").append(totalSessions).append(',');
+        sb.append("\"peakDay\":\"").append(esc(peakDay)).append("\",");
+        sb.append("\"peakDayEntries\":").append(peakDayVal);
         sb.append('}');
 
         sb.append('}');
+        return sb.toString();
+    }
+
+    // ============================================================= AUDIT LOG QUERY
+
+    @Override
+    public String getAuditLog(String filter, int limit, int offset) {
+        boolean hasFilter = filter != null && !filter.isEmpty() && !"todos".equalsIgnoreCase(filter);
+
+        // Total de registros que coinciden con el filtro
+        int total = 0;
+        String countSql = hasFilter
+            ? "SELECT COUNT(*) FROM audit_log WHERE action LIKE ?"
+            : "SELECT COUNT(*) FROM audit_log";
+        try (PreparedStatement ps = conn.prepareStatement(countSql)) {
+            if (hasFilter) ps.setString(1, "%" + filter.toUpperCase() + "%");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) total = rs.getInt(1);
+        } catch (SQLException ignored) {}
+
+        // Registros paginados — timestamp completo (fecha + hora)
+        String dataSql = hasFilter
+            ? "SELECT action, COALESCE(description,'') AS description, timestamp " +
+              "FROM audit_log WHERE action LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?"
+            : "SELECT action, COALESCE(description,'') AS description, timestamp " +
+              "FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?";
+
+        StringBuilder sb = new StringBuilder(4096);
+        sb.append("{\"total\":").append(total).append(",\"records\":[");
+        try (PreparedStatement ps = conn.prepareStatement(dataSql)) {
+            int p = 1;
+            if (hasFilter) ps.setString(p++, "%" + filter.toUpperCase() + "%");
+            ps.setInt(p++, limit);
+            ps.setInt(p,   offset);
+            ResultSet rs = ps.executeQuery();
+            boolean first = true;
+            while (rs.next()) {
+                if (!first) sb.append(',');
+                first = false;
+                String ts = rs.getString("timestamp");
+                // Mostrar fecha y hora completas: "2024-06-08 14:23:01"
+                String full = (ts != null && ts.length() >= 19) ? ts.substring(0, 19) : (ts != null ? ts : "");
+                sb.append("{\"timestamp\":\"").append(esc(full)).append("\",");
+                sb.append("\"action\":\"").append(esc(rs.getString("action"))).append("\",");
+                sb.append("\"description\":\"").append(esc(rs.getString("description"))).append("\"}");
+            }
+        } catch (SQLException e) {
+            System.err.println("  [SQLITE] getAuditLog: " + e.getMessage());
+        }
+        sb.append("]}");
         return sb.toString();
     }
 

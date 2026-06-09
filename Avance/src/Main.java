@@ -105,7 +105,8 @@ public class Main {
     private static ISensorRepository buildRepository() {
         String dbPath = System.getProperty("stadium.db", "stadium.db");
         try {
-            System.out.println("  [SQLITE] Abriendo base de datos en " + dbPath);
+            java.io.File f = new java.io.File(dbPath);
+            System.out.println("  [SQLITE] Abriendo base de datos en: " + f.getAbsolutePath());
             return new SqliteSensorRepository(dbPath);
         } catch (Exception e) {
             System.err.println("  [SQLITE] Error: " + e.getMessage()
